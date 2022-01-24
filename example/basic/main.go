@@ -14,7 +14,7 @@ type Model struct {
 
 	ID   uint64
 	Text string    `ch:",lc"`
-	Time time.Time `ch:",pk,default:now()"`
+	Time time.Time `ch:",pk"`
 }
 
 func main() {
@@ -37,8 +37,8 @@ func main() {
 		panic(err)
 	}
 
-	src := &Model{ID: 1, Text: "hello"}
-	if _, err := db.NewInsert().Model(src).Column("id", "text").Exec(ctx); err != nil {
+	src := &Model{ID: 1, Text: "hello", Time: time.Now()}
+	if _, err := db.NewInsert().Model(src).Exec(ctx); err != nil {
 		panic(err)
 	}
 
