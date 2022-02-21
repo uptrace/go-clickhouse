@@ -2,7 +2,6 @@ package chschema
 
 import (
 	"bytes"
-	"constraints"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +13,8 @@ import (
 
 	"github.com/uptrace/go-clickhouse/ch/chproto"
 	"github.com/uptrace/go-clickhouse/ch/internal"
+
+	"golang.org/x/exp/constraints"
 )
 
 type Column struct {
