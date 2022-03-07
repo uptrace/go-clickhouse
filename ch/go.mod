@@ -9,10 +9,10 @@ require (
 	github.com/codemodus/kace v0.5.1
 	github.com/go-pg/zerochecker v0.2.0
 	github.com/jinzhu/inflection v1.0.0
-	github.com/pierrec/lz4/v4 v4.1.11
+	github.com/pierrec/lz4/v4 v4.1.14
 	github.com/stretchr/testify v1.7.0
 	github.com/uptrace/go-clickhouse/extra/chdebug v0.0.0-00010101000000-000000000000
-	golang.org/x/exp v0.0.0-20211210185655-e05463a05a18
+	golang.org/x/exp v0.0.0-20220307080910-a2e15db56b5f
 )
 
 require (
