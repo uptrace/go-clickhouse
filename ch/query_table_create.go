@@ -15,6 +15,7 @@ type CreateTableQuery struct {
 	engine      chschema.QueryWithArgs
 	ttl         chschema.QueryWithArgs
 	partition   chschema.QueryWithArgs
+	order       chschema.QueryWithArgs
 }
 
 var _ Query = (*CreateTableQuery)(nil)
@@ -75,6 +76,11 @@ func (q *CreateTableQuery) TTL(query string, args ...any) *CreateTableQuery {
 
 func (q *CreateTableQuery) Partition(query string, args ...any) *CreateTableQuery {
 	q.partition = chschema.SafeQuery(query, args)
+	return q
+}
+
+func (q *CreateTableQuery) Order(query string, args ...any) *CreateTableQuery {
+	q.order = chschema.SafeQuery(query, args)
 	return q
 }
 
@@ -159,7 +165,14 @@ func (q *CreateTableQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []
 	}
 
 	b = append(b, " ORDER BY "...)
-	if len(q.table.PKs) > 0 {
+	if !q.order.IsZero() {
+		b = append(b, '(')
+		b, err = q.order.AppendQuery(fmter, b)
+		if err != nil {
+			return nil, err
+		}
+		b = append(b, ')')
+	} else if len(q.table.PKs) > 0 {
 		b = append(b, '(')
 		for i, pk := range q.table.PKs {
 			if i > 0 {

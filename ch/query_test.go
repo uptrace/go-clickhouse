@@ -73,6 +73,7 @@ func TestQuery(t *testing.T) {
 			return db.NewCreateTable().Model((*Model)(nil)).
 				TTL("time + INTERVAL 30 DAY DELETE").
 				Partition("toDate(time)").
+				Order("id").
 				Setting("ttl_only_drop_parts = 1")
 		},
 	}
