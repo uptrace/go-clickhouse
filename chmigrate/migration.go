@@ -88,7 +88,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/uptrace/ch"
+	"github.com/uptrace/go-clickhouse/ch"
 )
 
 func init() {
