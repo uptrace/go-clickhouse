@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/go-clickhouse/extra/chdebug"
+	"github.com/uptrace/go-clickhouse/chdebug"
 )
 
 func chDB(opts ...ch.Option) *ch.DB {

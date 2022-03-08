@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/go-clickhouse/extra/chdebug"
+	"github.com/uptrace/go-clickhouse/chdebug"
 )
 
 type User struct {

@@ -2,16 +2,15 @@ module github.com/uptrace/go-clickhouse/ch
 
 go 1.18
 
-replace github.com/uptrace/go-clickhouse/extra/chdebug => ../extra/chdebug
+replace github.com/uptrace/go-clickhouse/chdebug => ../chdebug
 
 require (
 	github.com/bradleyjkemp/cupaloy v2.3.0+incompatible
 	github.com/codemodus/kace v0.5.1
-	github.com/go-pg/zerochecker v0.2.0
 	github.com/jinzhu/inflection v1.0.0
 	github.com/pierrec/lz4/v4 v4.1.14
 	github.com/stretchr/testify v1.7.0
-	github.com/uptrace/go-clickhouse/extra/chdebug v0.0.0-00010101000000-000000000000
+	github.com/uptrace/go-clickhouse/chdebug v0.0.0-00010101000000-000000000000
 	golang.org/x/exp v0.0.0-20220307200941-a1099baf94bf
 )
 
