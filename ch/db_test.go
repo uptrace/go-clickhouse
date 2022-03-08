@@ -3,6 +3,7 @@ package ch_test
 import (
 	"context"
 	"database/sql"
+	"os"
 	"testing"
 	"time"
 
@@ -13,7 +14,12 @@ import (
 )
 
 func chDB(opts ...ch.Option) *ch.DB {
-	opts = append(opts, ch.WithDatabase("test"))
+	dsn := os.Getenv("CH")
+	if dsn == "" {
+		dsn = "clickhouse://localhost:9000/test?sslmode=disable"
+	}
+
+	opts = append(opts, ch.WithDSN(dsn))
 	db := ch.Connect(opts...)
 	db.AddQueryHook(chdebug.NewQueryHook(
 		chdebug.WithEnabled(false),

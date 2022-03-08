@@ -13,7 +13,7 @@ jobs:
 
     services:
       clickhouse:
-        image: yandex/clickhouse-server:21.12
+        image: clickhouse/clickhouse-server:21.12
         options: >-
           --health-cmd "clickhouse-client -q 'select 1'" --health-interval 10s --health-timeout 5s
           --health-retries 5
@@ -32,3 +32,5 @@ jobs:
 
       - name: Test
         run: make test
+        env:
+          CH: clickhouse://localhost:9000/default?sslmode=disable
