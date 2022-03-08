@@ -13,6 +13,7 @@ import (
 )
 
 func chDB(opts ...ch.Option) *ch.DB {
+	opts = append(opts, ch.WithDatabase("test"))
 	db := ch.Connect(opts...)
 	db.AddQueryHook(chdebug.NewQueryHook(
 		chdebug.WithEnabled(false),
@@ -56,6 +57,43 @@ func TestCHTimeout(t *testing.T) {
 		require.NoError(t, err)
 		return num == 1
 	}, time.Second, 100*time.Millisecond)
+}
+
+func TestNullable(t *testing.T) {
+	ctx := context.Background()
+
+	db := chDB()
+	defer db.Close()
+
+	type Model struct {
+		Name      *string
+		CreatedAt time.Time `ch:",pk"`
+	}
+
+	err := db.ResetModel(ctx, (*Model)(nil))
+	require.NoError(t, err)
+
+	models := []Model{
+		{Name: strptr("hello"), CreatedAt: time.Unix(1e6, 0).Local()},
+		{Name: strptr(""), CreatedAt: time.Unix(1e6+1, 0).Local()},
+		{Name: nil, CreatedAt: time.Unix(1e6+2, 0).Local()},
+	}
+	_, err = db.NewInsert().Model(&models).Exec(ctx)
+	require.NoError(t, err)
+
+	var models2 []Model
+	err = db.NewSelect().Model(&models2).Scan(ctx)
+	require.NoError(t, err)
+	require.Equal(t, models, models2)
+
+	var ms []map[string]any
+	err = db.NewSelect().Model((*Model)(nil)).OrderExpr("created_at").Scan(ctx, &ms)
+	require.NoError(t, err)
+	require.Equal(t, []map[string]any{
+		{"name": "hello", "created_at": time.Unix(1e6, 0)},
+		{"name": "", "created_at": time.Unix(1e6+1, 0)},
+		{"name": nil, "created_at": time.Unix(1e6+2, 0)},
+	}, ms)
 }
 
 func TestPlaceholder(t *testing.T) {
@@ -396,4 +434,8 @@ func testORMInvalidEnumValue(t *testing.T, db *ch.DB) {
 	err = db.NewSelect().Model(dest).Scan(ctx)
 	require.NoError(t, err)
 	require.Equal(t, "invalid", dest.Kind)
+}
+
+func strptr(s string) *string {
+	return &s
 }

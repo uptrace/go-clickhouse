@@ -55,6 +55,7 @@ func clickhouseType(typ reflect.Type) string {
 		if typ.Elem().Kind() == reflect.Struct {
 			return chtype.String
 		}
+		return fmt.Sprintf("Nullable(%s)", clickhouseType(typ.Elem()))
 	case reflect.Slice:
 		switch elem := typ.Elem(); elem.Kind() {
 		case reflect.Ptr:
@@ -159,6 +160,7 @@ func ColumnFactory(typ reflect.Type, chType string) NewColumnFunc {
 		if typ.Elem().Kind() == reflect.Struct {
 			return NewJSONColumn
 		}
+		return NullableNewColumnFunc(ColumnFactory(typ.Elem(), nullableType(chType)))
 	case reflect.Slice:
 		switch elem := typ.Elem(); elem.Kind() {
 		case reflect.Ptr:
@@ -316,6 +318,9 @@ func goType(chType string) reflect.Type {
 	if s := dateTimeType(chType); s != "" {
 		return timeType
 	}
+	if s := nullableType(chType); s != "" {
+		return reflect.PtrTo(goType(s))
+	}
 	if _, funcType := aggFuncNameAndType(chType); funcType != "" {
 		return goType(funcType)
 	}
@@ -359,6 +364,10 @@ func dateTimeType(s string) string {
 		internal.Logger.Printf("DateTime has timezeone=%q, expected UTC", s)
 	}
 	return chtype.DateTime
+}
+
+func nullableType(s string) string {
+	return chSubType(s, "Nullable(")
 }
 
 func aggFuncNameAndType(chType string) (funcName, funcType string) {

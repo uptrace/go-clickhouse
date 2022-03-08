@@ -90,6 +90,10 @@ func (c *ArrayColumn) Value() any {
 	return c.Column.Interface()
 }
 
+func (c *ArrayColumn) Nullable(nulls Uint8Column) any {
+	panic("not implemented")
+}
+
 func (c *ArrayColumn) Len() int {
 	return c.Column.Len()
 }
@@ -253,6 +257,10 @@ func (c *StringArrayColumn) Set(v any) {
 
 func (c *StringArrayColumn) Value() any {
 	return c.Column
+}
+
+func (c *StringArrayColumn) Nullable(nulls Uint8Column) any {
+	panic("not implemented")
 }
 
 func (c *StringArrayColumn) Len() int {

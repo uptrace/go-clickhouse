@@ -4,24 +4,20 @@
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/uptrace/go-clickhouse/ch)](https://pkg.go.dev/github.com/go-clickhouse/ch)
 [![Documentation](https://img.shields.io/badge/ch-documentation-informational)](https://clickhouse.uptrace.dev/)
 
-This client uses native protocol to communicate with ClickHouse server. It requires Go 1.18+ in
-order to use generics. This is not a database/sql driver, but the API is similar.
+This client uses native protocol to communicate with ClickHouse server and requires Go 1.18+ in
+order to use generics. This is not a database/sql driver, but the API is compatible.
 
 Main features are:
 
-- Native protocol support.
-- `database/sql`-like API.
+- ClickHouse native protocol support and efficient column-oriented design.
+- API compatible with database/sql.
 - [Bun](https://github.com/uptrace/bun/)-like query builder.
 - [Selecting](https://clickhouse.uptrace.dev/guide/query-select.html) into scalars, structs, maps,
   slices of maps/structs/scalars.
-- Efficient [inserts](https://clickhouse.uptrace.dev/guide/query-insert.html#api).
-- `Array(*)` including nested arrays.
+- `Array(T)` including nested arrays.
 - Enums and `LowCardinality(String)`.
+- `Nullable(T)` except `Nullable(Array(T))`.
 - Migrations.
-
-Not supported:
-
-- Nullable types.
 
 Resources:
 

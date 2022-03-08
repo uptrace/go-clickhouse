@@ -37,6 +37,7 @@ type Columnar interface {
 	Set(v any)
 	AppendValue(v reflect.Value)
 	Value() any
+	Nullable(nulls Uint8Column) any
 	Len() int
 	Index(idx int) any
 	Slice(s, e int) any
@@ -86,6 +87,16 @@ func (c *ColumnOf[T]) Set(v any) {
 
 func (c ColumnOf[T]) Value() any {
 	return c.Column
+}
+
+func (c ColumnOf[T]) Nullable(nulls Uint8Column) any {
+	nullable := make([]*T, len(c.Column))
+	for i := range c.Column {
+		if nulls.Column[i] == 0 {
+			nullable[i] = &c.Column[i]
+		}
+	}
+	return nullable
 }
 
 func (c ColumnOf[T]) Len() int {
