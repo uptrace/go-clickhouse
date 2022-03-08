@@ -5,7 +5,6 @@ import (
 	"reflect"
 
 	"github.com/codemodus/kace"
-	"github.com/go-pg/zerochecker"
 	"github.com/jinzhu/inflection"
 
 	"github.com/uptrace/go-clickhouse/ch/chtype"
@@ -229,9 +228,7 @@ func (t *Table) newField(f reflect.StructField, index []int, tag tagparser.Tag) 
 	if s, ok := tag.Option("default"); ok {
 		field.CHDefault = Safe(s)
 	}
-
 	field.appendValue = Appender(f.Type)
-	field.isZeroValue = zerochecker.Checker(f.Type)
 
 	if s, ok := tag.Option("alt"); ok {
 		t.FieldMap[s] = field

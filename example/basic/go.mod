@@ -7,8 +7,8 @@ replace github.com/uptrace/go-clickhouse/ch => ../../ch
 replace github.com/uptrace/go-clickhouse/extra/chdebug => ../../extra/chdebug
 
 require (
-	github.com/uptrace/go-clickhouse/ch v0.0.0-20220307120528-f94409373c22
-	github.com/uptrace/go-clickhouse/extra/chdebug v0.0.0-20220307120528-f94409373c22
+	github.com/uptrace/go-clickhouse/ch v0.0.0-20220307120720-c1e94c04a777
+	github.com/uptrace/go-clickhouse/extra/chdebug v0.0.0-20220307120720-c1e94c04a777
 )
 
 require (
@@ -19,6 +19,6 @@ require (
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
-	golang.org/x/exp v0.0.0-20220307080910-a2e15db56b5f // indirect
-	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9 // indirect
+	golang.org/x/exp v0.0.0-20220307200941-a1099baf94bf // indirect
+	golang.org/x/sys v0.0.0-20220307203707-22a9840ba4d7 // indirect
 )
