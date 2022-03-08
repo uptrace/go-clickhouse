@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/bradleyjkemp/cupaloy"
 	"github.com/uptrace/go-clickhouse/ch"
@@ -60,6 +61,19 @@ func TestQuery(t *testing.T) {
 			return db.NewSelect().
 				Model((*Model)(nil)).
 				Sample("?", 1000)
+		},
+		func(db *ch.DB) chschema.QueryAppender {
+			type Model struct {
+				ch.CHModel `ch:"table:spans,partition:toYYYYMM(time)"`
+
+				ID   uint64
+				Text string    `ch:",lc"` // low cardinality column
+				Time time.Time `ch:",pk"` // ClickHouse primary key for order by
+			}
+			return db.NewCreateTable().Model((*Model)(nil)).
+				TTL("time + INTERVAL 30 DAY DELETE").
+				Partition("toDate(time)").
+				Setting("ttl_only_drop_parts = 1")
 		},
 	}
 

@@ -13,6 +13,7 @@ type CreateTableQuery struct {
 
 	ifNotExists bool
 	engine      chschema.QueryWithArgs
+	ttl         chschema.QueryWithArgs
 	partition   chschema.QueryWithArgs
 }
 
@@ -59,6 +60,26 @@ func (q *CreateTableQuery) ColumnExpr(query string, args ...any) *CreateTableQue
 
 func (q *CreateTableQuery) IfNotExists() *CreateTableQuery {
 	q.ifNotExists = true
+	return q
+}
+
+func (q *CreateTableQuery) Engine(query string, args ...any) *CreateTableQuery {
+	q.engine = chschema.SafeQuery(query, args)
+	return q
+}
+
+func (q *CreateTableQuery) TTL(query string, args ...any) *CreateTableQuery {
+	q.ttl = chschema.SafeQuery(query, args)
+	return q
+}
+
+func (q *CreateTableQuery) Partition(query string, args ...any) *CreateTableQuery {
+	q.partition = chschema.SafeQuery(query, args)
+	return q
+}
+
+func (q *CreateTableQuery) Setting(query string, args ...any) *CreateTableQuery {
+	q.settings = append(q.settings, chschema.SafeQuery(query, args))
 	return q
 }
 
@@ -132,6 +153,11 @@ func (q *CreateTableQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []
 		b = append(b, "MergeTree()"...)
 	}
 
+	b, err = q.appendPartition(fmter, b)
+	if err != nil {
+		return nil, err
+	}
+
 	b = append(b, " ORDER BY "...)
 	if len(q.table.PKs) > 0 {
 		b = append(b, '(')
@@ -146,7 +172,15 @@ func (q *CreateTableQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []
 		b = append(b, "tuple()"...)
 	}
 
-	b, err = q.appendPartition(fmter, b)
+	if !q.ttl.IsZero() {
+		b = append(b, " TTL "...)
+		b, err = q.ttl.AppendQuery(fmter, b)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	b, err = q.appendSettings(fmter, b)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +195,7 @@ func (q *CreateTableQuery) appendPartition(fmter chschema.Formatter, b []byte) (
 
 	b = append(b, " PARTITION BY "...)
 	if !q.partition.IsZero() {
-		return q.engine.AppendQuery(fmter, b)
+		return q.partition.AppendQuery(fmter, b)
 	}
 	return append(b, q.table.CHPartition...), nil
 }
