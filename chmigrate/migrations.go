@@ -1,4 +1,4 @@
-package migrate
+package chmigrate
 
 import (
 	"errors"
@@ -109,7 +109,7 @@ func (m *Migrations) Discover(fsys fs.FS) error {
 			return nil
 		}
 
-		return errors.New("migrate: not reached")
+		return errors.New("chmigrate: not reached")
 	})
 }
 
@@ -146,7 +146,7 @@ func migrationFile() string {
 		if !ok {
 			break
 		}
-		if !strings.Contains(f.Function, "/ch/migrate.") {
+		if !strings.Contains(f.Function, "/chmigrate.") {
 			return f.File
 		}
 	}
@@ -161,7 +161,7 @@ func extractMigrationName(fpath string) (string, error) {
 
 	matches := fnameRE.FindStringSubmatch(fname)
 	if matches == nil {
-		return "", fmt.Errorf("migrate: unsupported migration name format: %q", fname)
+		return "", fmt.Errorf("chmigrate: unsupported migration name format: %q", fname)
 	}
 
 	return matches[1], nil

@@ -1,8 +1,8 @@
-module github.com/uptrace/go-clickhouse/ch
+module github.com/uptrace/go-clickhouse
 
 go 1.18
 
-replace github.com/uptrace/go-clickhouse/chdebug => ../chdebug
+replace github.com/uptrace/go-clickhouse/chdebug => ./chdebug
 
 require (
 	github.com/bradleyjkemp/cupaloy v2.3.0+incompatible

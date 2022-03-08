@@ -1,4 +1,4 @@
-package migrate
+package chmigrate
 
 import (
 	"context"
@@ -285,10 +285,10 @@ func (m *Migrator) genMigrationName(name string) (string, error) {
 	const timeFormat = "20060102150405"
 
 	if name == "" {
-		return "", errors.New("migrate: migration name can't be empty")
+		return "", errors.New("chmigrate: migration name can't be empty")
 	}
 	if !nameRE.MatchString(name) {
-		return "", fmt.Errorf("migrate: invalid migration name: %q", name)
+		return "", fmt.Errorf("chmigrate: invalid migration name: %q", name)
 	}
 
 	version := time.Now().UTC().Format(timeFormat)
@@ -336,7 +336,7 @@ func (m *Migrator) formattedTableName(db *ch.DB) string {
 
 func (m *Migrator) validate() error {
 	if len(m.ms) == 0 {
-		return errors.New("migrate: there are no any migrations")
+		return errors.New("chmigrate: there are no any migrations")
 	}
 	return nil
 }
@@ -353,7 +353,7 @@ func (m *Migrator) Lock(ctx context.Context) error {
 		"ALTER TABLE ? ADD COLUMN ? Int8",
 		ch.Safe(m.locksTable), ch.Safe("col1"),
 	); err != nil {
-		return fmt.Errorf("migrate: migrations table is already locked (%w)", err)
+		return fmt.Errorf("chmigrate: migrations table is already locked (%w)", err)
 	}
 	return nil
 }
@@ -364,7 +364,7 @@ func (m *Migrator) Unlock(ctx context.Context) error {
 		"ALTER TABLE ? DROP COLUMN ?",
 		ch.Safe(m.locksTable), ch.Safe("col1"),
 	); err != nil && !strings.Contains(err.Error(), "Cannot find column") {
-		return fmt.Errorf("migrate: migrations table is already unlocked (%w)", err)
+		return fmt.Errorf("chmigrate: migrations table is already unlocked (%w)", err)
 	}
 	return nil
 }

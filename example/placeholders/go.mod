@@ -2,12 +2,11 @@ module github.com/uptrace/go-clickhouse/example/placeholders
 
 go 1.18
 
-replace github.com/uptrace/go-clickhouse/ch => ../../ch
+replace github.com/uptrace/go-clickhouse => ../..
 
 replace github.com/uptrace/go-clickhouse/chdebug => ../../chdebug
 
 require (
-	github.com/uptrace/go-clickhouse/ch v0.0.0-20220307120720-c1e94c04a777
 	github.com/uptrace/go-clickhouse/chdebug v0.0.0-20220307120720-c1e94c04a777
 )
 
