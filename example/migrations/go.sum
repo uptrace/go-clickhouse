@@ -25,8 +25,6 @@ github.com/russross/blackfriday/v2 v2.1.0 h1:JIOH55/0cWyOuilr9/qlrm0BSXldqnqwMsf
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
-github.com/uptrace/go-clickhouse/extra/chdebug v0.0.0-20220308120244-50192cd8fb1b h1:YQsrJi4Cv4PGYW9JrIps9SA1llLXCsnQh43abTLzw+E=
-github.com/uptrace/go-clickhouse/extra/chdebug v0.0.0-20220308120244-50192cd8fb1b/go.mod h1:Hir/k7o/qsgSjflDQqcbc4FMqPhDRyezh+p/HcNndrc=
 github.com/urfave/cli/v2 v2.3.0 h1:qph92Y649prgesehzOrQjdWyxFOp/QVM+6imKHad91M=
 github.com/urfave/cli/v2 v2.3.0/go.mod h1:LJmUH05zAU44vOAcrfzZQKsZbVcdbOG8rtL3/XcUArI=
 golang.org/x/exp v0.0.0-20220307200941-a1099baf94bf h1:IoCgLaQjznvljAcEatPiHdqZi9oIBU5w0AJrlRkzX7s=
