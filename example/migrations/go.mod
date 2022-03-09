@@ -7,8 +7,8 @@ replace github.com/uptrace/go-clickhouse => ../..
 replace github.com/uptrace/go-clickhouse/chdebug => ../../chdebug
 
 require (
-	github.com/uptrace/go-clickhouse v0.0.0-20220309103833-8458514b447c
-	github.com/uptrace/go-clickhouse/chdebug v0.0.0-20220309103833-8458514b447c
+	github.com/uptrace/go-clickhouse v0.1.0
+	github.com/uptrace/go-clickhouse/chdebug v0.1.0
 	github.com/urfave/cli/v2 v2.3.0
 )
 

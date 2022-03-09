@@ -10,8 +10,8 @@ replace github.com/uptrace/go-clickhouse/chotel => ../../chotel
 
 require (
 	github.com/brianvoe/gofakeit/v5 v5.11.2
-	github.com/uptrace/go-clickhouse v0.0.0-20220309103833-8458514b447c
-	github.com/uptrace/go-clickhouse/chotel v0.0.0-20220309103833-8458514b447c
+	github.com/uptrace/go-clickhouse v0.1.0
+	github.com/uptrace/go-clickhouse/chotel v0.1.0
 	github.com/uptrace/opentelemetry-go-extra/otelplay v0.1.9
 	go.opentelemetry.io/otel v1.4.1
 )
