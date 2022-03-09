@@ -18,6 +18,7 @@ Main features are:
 - Enums and `LowCardinality(String)`.
 - `Nullable(T)` except `Nullable(Array(T))`.
 - [Migrations](https://clickhouse.uptrace.dev/guide/migrations.html).
+- [OpenTelemetry](https://clickhouse.uptrace.dev/guide/monitoring.html) support.
 
 Resources:
 
