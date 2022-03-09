@@ -302,12 +302,22 @@ func parseDSN(dsn string) ([]Option, error) {
 	if len(rem) > 0 {
 		params := make(map[string]any, len(rem))
 		for k, v := range rem {
-			params[k] = v
+			params[k] = parseSettingValue(v)
 		}
 		opts = append(opts, WithQuerySettings(params))
 	}
 
 	return opts, nil
+}
+
+func parseSettingValue(s string) any {
+	if b, err := strconv.ParseBool(s); err == nil {
+		return b
+	}
+	if i, err := strconv.ParseInt(s, 10, 64); err == nil {
+		return i
+	}
+	return s
 }
 
 type queryOptions struct {

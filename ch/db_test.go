@@ -3,6 +3,7 @@ package ch_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -63,6 +64,33 @@ func TestCHTimeout(t *testing.T) {
 		require.NoError(t, err)
 		return num == 1
 	}, time.Second, 100*time.Millisecond)
+}
+
+func TestDSNSetting(t *testing.T) {
+	ctx := context.Background()
+
+	for _, value := range []int{0, 1} {
+		t.Run("prefer_column_name_to_alias=%d", func(t *testing.T) {
+			db := ch.Connect(ch.WithDSN(fmt.Sprintf(
+				"clickhouse://localhost:9000/default?sslmode=disable&prefer_column_name_to_alias=%d",
+				value,
+			)))
+			defer db.Close()
+
+			err := db.Ping(ctx)
+			require.NoError(t, err)
+
+			var got string
+
+			err = db.NewSelect().
+				ColumnExpr("value").
+				TableExpr("system.settings").
+				Where("name = 'prefer_column_name_to_alias'").
+				Scan(ctx, &got)
+			require.NoError(t, err)
+			require.Equal(t, got, fmt.Sprint(value))
+		})
+	}
 }
 
 func TestNullable(t *testing.T) {
