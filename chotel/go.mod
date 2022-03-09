@@ -2,12 +2,12 @@ module github.com/uptrace/go-clickhouse/chotel
 
 go 1.18
 
-replace github.com/uptrace/go-clickhouse => ../..
+replace github.com/uptrace/go-clickhouse => ./..
 
 replace github.com/uptrace/go-clickhouse/chdebug => ../chdebug
 
 require (
-	github.com/uptrace/go-clickhouse/ch v0.0.0-20220308124651-82a5d8d72ef7
+	github.com/uptrace/go-clickhouse v0.0.0-20220309103833-8458514b447c
 	go.opentelemetry.io/otel v1.4.1
 	go.opentelemetry.io/otel/trace v1.4.1
 )

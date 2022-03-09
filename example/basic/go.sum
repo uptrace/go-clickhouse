@@ -16,8 +16,6 @@ github.com/pierrec/lz4/v4 v4.1.14 h1:+fL8AQEZtz/ijeNnpduH0bROTu0O3NZAlPjQxGn8LwE
 github.com/pierrec/lz4/v4 v4.1.14/go.mod h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFuRQyBid4=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
-github.com/uptrace/go-clickhouse/ch v0.0.0-20220308124651-82a5d8d72ef7 h1:7kA2KJVuk0sXjKF+/3uRcvW0FMxOl2xx/DSCWbJJwsk=
-github.com/uptrace/go-clickhouse/ch v0.0.0-20220308124651-82a5d8d72ef7/go.mod h1:pkAEOkY2Yp3Pc1VPoKXcq5+A0XlYYBzS3/VIrnenTI4=
 golang.org/x/exp v0.0.0-20220307200941-a1099baf94bf h1:IoCgLaQjznvljAcEatPiHdqZi9oIBU5w0AJrlRkzX7s=
 golang.org/x/exp v0.0.0-20220307200941-a1099baf94bf/go.mod h1:lgLbSvA5ygNOMpwM/9anMpWVlVJ7Z+cHWq/eFuinpGE=
 golang.org/x/sys v0.0.0-20200116001909-b77594299b42/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

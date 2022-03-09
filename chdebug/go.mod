@@ -2,11 +2,11 @@ module github.com/uptrace/go-clickhouse/chdebug
 
 go 1.18
 
-replace github.com/uptrace/go-clickhouse => ../..
+replace github.com/uptrace/go-clickhouse => ./..
 
 require (
 	github.com/fatih/color v1.13.0
-	github.com/uptrace/go-clickhouse/ch v0.0.0-20220308124651-82a5d8d72ef7
+	github.com/uptrace/go-clickhouse v0.0.0-20220309103833-8458514b447c
 )
 
 require (
