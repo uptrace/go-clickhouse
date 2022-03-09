@@ -17,7 +17,7 @@ Main features are:
 - `Array(T)` including nested arrays.
 - Enums and `LowCardinality(String)`.
 - `Nullable(T)` except `Nullable(Array(T))`.
-- Migrations.
+- [Migrations](https://clickhouse.uptrace.dev/guide/migrations.html).
 
 Resources:
 
