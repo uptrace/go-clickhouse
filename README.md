@@ -19,6 +19,7 @@ Main features are:
 - `Nullable(T)` except `Nullable(Array(T))`.
 - [Migrations](https://clickhouse.uptrace.dev/guide/migrations.html).
 - [OpenTelemetry](https://clickhouse.uptrace.dev/guide/monitoring.html) support.
+- In production at [Uptrace](https://uptrace.dev/)
 
 Resources:
 
