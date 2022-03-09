@@ -6,7 +6,7 @@ replace github.com/uptrace/go-clickhouse => ./..
 
 require (
 	github.com/fatih/color v1.13.0
-	github.com/uptrace/go-clickhouse v0.0.0-20220309103833-8458514b447c
+	github.com/uptrace/go-clickhouse v0.1.0
 )
 
 require (

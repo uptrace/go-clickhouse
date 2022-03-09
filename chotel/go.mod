@@ -7,7 +7,7 @@ replace github.com/uptrace/go-clickhouse => ./..
 replace github.com/uptrace/go-clickhouse/chdebug => ../chdebug
 
 require (
-	github.com/uptrace/go-clickhouse v0.0.0-20220309103833-8458514b447c
+	github.com/uptrace/go-clickhouse v0.1.0
 	go.opentelemetry.io/otel v1.4.1
 	go.opentelemetry.io/otel/trace v1.4.1
 )
