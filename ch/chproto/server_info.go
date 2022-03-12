@@ -1,7 +1,7 @@
 package chproto
 
 import (
-	"fmt"
+	"time"
 )
 
 type ServerInfo struct {
@@ -10,6 +10,10 @@ type ServerInfo struct {
 	MajorVersion uint64
 	Revision     uint64
 }
+
+var (
+	timeZoneOffset int
+)
 
 func (srv *ServerInfo) ReadFrom(rd *Reader) (err error) {
 	if srv.Name, err = rd.String(); err != nil {
@@ -29,9 +33,13 @@ func (srv *ServerInfo) ReadFrom(rd *Reader) (err error) {
 	if err != nil {
 		return err
 	}
-	if timezone != "UTC" {
-		return fmt.Errorf("ch: ClickHouse server uses timezone=%q, expected UTC", timezone)
+
+	serverTimeZone, err := time.LoadLocation(timezone)
+	if err != nil {
+		return err
 	}
+
+	_, timeZoneOffset = time.Now().In(serverTimeZone).Zone()
 
 	if _, err = rd.String(); err != nil { // display name
 		return err
@@ -41,4 +49,8 @@ func (srv *ServerInfo) ReadFrom(rd *Reader) (err error) {
 	}
 
 	return nil
+}
+
+func TimeZoneOffset() int64 {
+	return int64(timeZoneOffset)
 }
