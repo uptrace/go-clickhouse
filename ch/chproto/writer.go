@@ -178,7 +178,7 @@ func (w *Writer) DateTime(tm time.Time) {
 const secsInDay = 24 * 3600
 
 func (w *Writer) Date(tm time.Time) {
-	w.Uint16(uint16(unixTime(tm) / secsInDay))
+	w.Uint16(uint16((unixTime(tm) + TimeZoneOffset()) / secsInDay))
 }
 
 func unixTime(tm time.Time) int64 {
