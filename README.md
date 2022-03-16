@@ -21,6 +21,10 @@ Main features are:
 - [OpenTelemetry](https://clickhouse.uptrace.dev/guide/monitoring.html) support.
 - In production at [Uptrace](https://uptrace.dev/)
 
+Not supported:
+
+- ClickHouse server timezone. Time is always parsed in local timezone.
+
 Resources:
 
 - [**Get started**](https://clickhouse.uptrace.dev/guide/getting-started.html)

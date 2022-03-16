@@ -244,6 +244,29 @@ func TestScanArrayUint8(t *testing.T) {
 	require.Equal(t, map[string]any{"ns": []uint8{0, 1, 2}}, m)
 }
 
+func TestTimezone(t *testing.T) {
+	ctx := context.Background()
+
+	db := chDB()
+	defer db.Close()
+
+	type Model struct {
+		CreatedAt time.Time `ch:",pk"`
+	}
+
+	err := db.ResetModel(ctx, (*Model)(nil))
+	require.NoError(t, err)
+
+	model1 := &Model{CreatedAt: time.Unix(1e6, 0)}
+	_, err = db.NewInsert().Model(model1).Exec(ctx)
+	require.NoError(t, err)
+
+	model2 := new(Model)
+	err = db.NewSelect().Model(model2).Scan(ctx)
+	require.NoError(t, err)
+	require.Equal(t, model1.CreatedAt.Unix(), model2.CreatedAt.Unix())
+}
+
 type Event struct {
 	ch.CHModel `ch:"goch_events,partition:toYYYYMM(created_at)"`
 
