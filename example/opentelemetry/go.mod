@@ -10,10 +10,10 @@ replace github.com/uptrace/go-clickhouse/chotel => ../../chotel
 
 require (
 	github.com/brianvoe/gofakeit/v5 v5.11.2
-	github.com/uptrace/go-clickhouse v0.1.0
-	github.com/uptrace/go-clickhouse/chotel v0.1.0
-	github.com/uptrace/opentelemetry-go-extra/otelplay v0.1.9
-	go.opentelemetry.io/otel v1.4.1
+	github.com/uptrace/go-clickhouse v0.1.1
+	github.com/uptrace/go-clickhouse/chotel v0.1.1
+	github.com/uptrace/opentelemetry-go-extra/otelplay v0.1.10
+	go.opentelemetry.io/otel v1.5.0
 )
 
 require (
@@ -27,24 +27,24 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
 	github.com/uptrace/uptrace-go v1.4.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.29.0 // indirect
-	go.opentelemetry.io/otel/exporters/jaeger v1.4.1 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.4.1 // indirect
+	go.opentelemetry.io/otel/exporters/jaeger v1.5.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.5.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.27.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.27.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.4.1 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.4.1 // indirect
-	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.4.1 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.5.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.5.0 // indirect
+	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.5.0 // indirect
 	go.opentelemetry.io/otel/internal/metric v0.27.0 // indirect
 	go.opentelemetry.io/otel/metric v0.27.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.4.1 // indirect
+	go.opentelemetry.io/otel/sdk v1.5.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v0.27.0 // indirect
-	go.opentelemetry.io/otel/trace v1.4.1 // indirect
+	go.opentelemetry.io/otel/trace v1.5.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.12.0 // indirect
-	golang.org/x/exp v0.0.0-20220307200941-a1099baf94bf // indirect
+	golang.org/x/exp v0.0.0-20220317015231-48e79f11773a // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
-	golang.org/x/sys v0.0.0-20220307203707-22a9840ba4d7 // indirect
+	golang.org/x/sys v0.0.0-20220317061510-51cd9980dadf // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20220308174144-ae0e22291548 // indirect
-	google.golang.org/grpc v1.44.0 // indirect
+	google.golang.org/genproto v0.0.0-20220314164441-57ef72a4c106 // indirect
+	google.golang.org/grpc v1.45.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 )
