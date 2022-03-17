@@ -54,7 +54,8 @@ done
 for dir in $PACKAGE_DIRS
 do
     sed --in-place \
-      "s/uptrace\/go-clickhouse\([^ ]*\) v.*/uptrace\/go-clickhouse\1 ${TAG}/" "${dir}/go.mod"
+        "s/uptrace\/go-clickhouse\([^ ]*\) v.*/uptrace\/go-clickhouse\1 ${TAG}/" "${dir}/go.mod"
+    (cd ./${dir} && go mod tidy)
 done
 
 
