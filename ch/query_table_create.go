@@ -164,16 +164,15 @@ func (q *CreateTableQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []
 		return nil, err
 	}
 
-	b = append(b, " ORDER BY "...)
 	if !q.order.IsZero() {
-		b = append(b, '(')
+		b = append(b, " ORDER BY ("...)
 		b, err = q.order.AppendQuery(fmter, b)
 		if err != nil {
 			return nil, err
 		}
 		b = append(b, ')')
 	} else if len(q.table.PKs) > 0 {
-		b = append(b, '(')
+		b = append(b, " ORDER BY ("...)
 		for i, pk := range q.table.PKs {
 			if i > 0 {
 				b = append(b, ", "...)
@@ -181,8 +180,8 @@ func (q *CreateTableQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []
 			b = append(b, pk.CHName...)
 		}
 		b = append(b, ')')
-	} else {
-		b = append(b, "tuple()"...)
+	} else if q.table.CHEngine == "" {
+		b = append(b, " ORDER BY tuple()"...)
 	}
 
 	if !q.ttl.IsZero() {

@@ -21,6 +21,10 @@ Main features are:
 - [OpenTelemetry](https://clickhouse.uptrace.dev/guide/monitoring.html) support.
 - In production at [Uptrace](https://uptrace.dev/)
 
+Unsupported:
+
+- Server timezones other than UTC.
+
 Resources:
 
 - [**Get started**](https://clickhouse.uptrace.dev/guide/getting-started.html)
@@ -28,6 +32,25 @@ Resources:
 - [Discussions](https://github.com/uptrace/go-clickhouse/discussions)
 - [Reference](https://pkg.go.dev/github.com/uptrace/go-clickhouse/ch)
 - [Example app](https://github.com/uptrace/uptrace)
+
+## Benchmark
+
+**Read** (best of 3 runs):
+
+| [This library][1] | [ClickHouse/clickhouse-go][2] |
+| ----------------- | ----------------------------- |
+| 655ms             | 849ms                         |
+
+**Write** (best of 3 runs):
+
+| [This library][3] | [ClickHouse/clickhouse-go][4] |
+| ----------------- | ----------------------------- |
+| 475ms             | 881ms                         |
+
+[1]: benchmark/read-native/main.go
+[2]: https://github.com/ClickHouse/clickhouse-go/blob/v2/benchmark/v2/read-native/main.go
+[3]: benchmark/write-native-columnar/main.go
+[4]: https://github.com/ClickHouse/clickhouse-go/blob/v2/benchmark/v2/write-native-columnar/main.go
 
 ## Example
 
