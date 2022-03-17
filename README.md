@@ -37,20 +37,17 @@ Resources:
 
 **Read** (best of 3 runs):
 
-| [This library][1] | [ClickHouse/clickhouse-go][2] |
-| ----------------- | ----------------------------- |
-| 655ms             | 849ms                         |
+| Library                                                                                                          | Timing |
+| ---------------------------------------------------------------------------------------------------------------- | ------ |
+| [This library](example/benchmark/read-native/main.go)                                                            | 655ms  |
+| [ClickHouse/clickhouse-go](https://github.com/ClickHouse/clickhouse-go/blob/v2/benchmark/v2/read-native/main.go) | 849ms  |
 
 **Write** (best of 3 runs):
 
-| [This library][3] | [ClickHouse/clickhouse-go][4] |
-| ----------------- | ----------------------------- |
-| 475ms             | 881ms                         |
-
-[1]: benchmark/read-native/main.go
-[2]: https://github.com/ClickHouse/clickhouse-go/blob/v2/benchmark/v2/read-native/main.go
-[3]: benchmark/write-native-columnar/main.go
-[4]: https://github.com/ClickHouse/clickhouse-go/blob/v2/benchmark/v2/write-native-columnar/main.go
+| Library                                                                                                                    | Timing |
+| -------------------------------------------------------------------------------------------------------------------------- | ------ |
+| [This library](example/benchmark/write-native-columnar/main.go)                                                            | 475ms  |
+| [ClickHouse/clickhouse-go](https://github.com/ClickHouse/clickhouse-go/blob/v2/benchmark/v2/write-native-columnar/main.go) | 881ms  |
 
 ## Example
 
