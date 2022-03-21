@@ -1,3 +1,12 @@
+#  (2022-03-21)
+
+
+### Features
+
+* initial commit ([092a2db](https://github.com/uptrace/go-clickhouse/commit/092a2dbf28ca070bd6d6cc3426ecbc1d9bc02c6e))
+
+
+
 # [](https://github.com/uptrace/go-clickhouse/compare/v0.1.0...v) (2022-03-17)
 
 
