@@ -11,7 +11,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.14
 	github.com/stretchr/testify v1.7.0
 	github.com/uptrace/go-clickhouse/chdebug v0.0.0-00010101000000-000000000000
-	golang.org/x/exp v0.0.0-20220307200941-a1099baf94bf
+	golang.org/x/exp v0.0.0-20220318154914-8dddf5d87bd8
 )
 
 require (
@@ -21,7 +21,7 @@ require (
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	golang.org/x/sys v0.0.0-20220307203707-22a9840ba4d7 // indirect
+	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
