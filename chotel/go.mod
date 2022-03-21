@@ -5,7 +5,7 @@ go 1.18
 replace github.com/uptrace/go-clickhouse => ./..
 
 require (
-	github.com/uptrace/go-clickhouse v0.2.1
+	github.com/uptrace/go-clickhouse v0.2.2
 	go.opentelemetry.io/otel v1.5.0
 	go.opentelemetry.io/otel/trace v1.5.0
 )
