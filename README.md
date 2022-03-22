@@ -51,6 +51,12 @@ Resources:
 | [This library](example/benchmark/write-native-columnar/main.go)                                                            | 475ms  |
 | [ClickHouse/clickhouse-go](https://github.com/ClickHouse/clickhouse-go/blob/v2/benchmark/v2/write-native-columnar/main.go) | 881ms  |
 
+## Installation
+
+```shell
+go get github.com/uptrace/go-clickhouse@latest
+```
+
 ## Example
 
 A [basic](example/basic) example:
