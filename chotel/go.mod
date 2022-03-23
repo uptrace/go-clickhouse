@@ -7,7 +7,7 @@ replace github.com/uptrace/go-clickhouse => ./..
 replace github.com/uptrace/go-clickhouse/chdebug => ../chdebug
 
 require (
-	github.com/uptrace/go-clickhouse v0.2.3
+	github.com/uptrace/go-clickhouse v0.2.4
 	go.opentelemetry.io/otel v1.5.0
 	go.opentelemetry.io/otel/trace v1.5.0
 )
@@ -18,5 +18,5 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
-	golang.org/x/exp v0.0.0-20220321173239-a90fa8a75705 // indirect
+	golang.org/x/exp v0.0.0-20220323121947-b445f275a754 // indirect
 )

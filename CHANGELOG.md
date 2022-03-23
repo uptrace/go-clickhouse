@@ -1,3 +1,7 @@
+# [](https://github.com/uptrace/go-clickhouse/compare/v0.2.3...v) (2022-03-23)
+
+
+
 # [](https://github.com/uptrace/go-clickhouse/compare/v0.2.2...v) (2022-03-23)
 
 
