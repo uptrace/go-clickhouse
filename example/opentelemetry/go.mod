@@ -10,8 +10,8 @@ replace github.com/uptrace/go-clickhouse/chotel => ../../chotel
 
 require (
 	github.com/brianvoe/gofakeit/v5 v5.11.2
-	github.com/uptrace/go-clickhouse v0.2.3
-	github.com/uptrace/go-clickhouse/chotel v0.2.3
+	github.com/uptrace/go-clickhouse v0.2.4
+	github.com/uptrace/go-clickhouse/chotel v0.2.4
 	github.com/uptrace/opentelemetry-go-extra/otelplay v0.1.10
 	go.opentelemetry.io/otel v1.5.0
 )
@@ -40,7 +40,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v0.27.0 // indirect
 	go.opentelemetry.io/otel/trace v1.5.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.12.0 // indirect
-	golang.org/x/exp v0.0.0-20220321173239-a90fa8a75705 // indirect
+	golang.org/x/exp v0.0.0-20220323121947-b445f275a754 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
 	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8 // indirect
 	golang.org/x/text v0.3.7 // indirect
