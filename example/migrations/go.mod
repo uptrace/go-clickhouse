@@ -7,8 +7,8 @@ replace github.com/uptrace/go-clickhouse => ../..
 replace github.com/uptrace/go-clickhouse/chdebug => ../../chdebug
 
 require (
-	github.com/uptrace/go-clickhouse v0.2.2
-	github.com/uptrace/go-clickhouse/chdebug v0.2.2
+	github.com/uptrace/go-clickhouse v0.2.3
+	github.com/uptrace/go-clickhouse/chdebug v0.2.3
 	github.com/urfave/cli/v2 v2.4.0
 )
 
@@ -21,6 +21,6 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	golang.org/x/exp v0.0.0-20220318154914-8dddf5d87bd8 // indirect
+	golang.org/x/exp v0.0.0-20220321173239-a90fa8a75705 // indirect
 	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8 // indirect
 )
