@@ -1,3 +1,12 @@
+# [](https://github.com/uptrace/go-clickhouse/compare/v0.2.2...v) (2022-03-23)
+
+
+### Features
+
+* close idle connections after 30 minutes ([844981b](https://github.com/uptrace/go-clickhouse/commit/844981bf1a831ab476e8854d413d2ea31c087d42))
+
+
+
 # [](https://github.com/uptrace/go-clickhouse/compare/v0.2.1...v) (2022-03-21)
 
 
