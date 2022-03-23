@@ -41,21 +41,22 @@ fi
 
 git checkout master
 
-PACKAGE_DIRS=$(find . -mindepth 2 -type f -name 'go.mod' -exec dirname {} \; \
+PACKAGE_DIRS=$(find . -mindepth 1 -type f -name 'go.mod' -exec dirname {} \; \
   | sed 's/^\.\///' \
   | sort)
 
 for dir in $PACKAGE_DIRS
 do
     printf "${dir}: go get -u && go mod tidy\n"
-    (cd ./${dir} && go get -u && go mod tidy)
+    (cd ${dir} && go get -u && go mod tidy)
 done
 
 for dir in $PACKAGE_DIRS
 do
     sed --in-place \
         "s/uptrace\/go-clickhouse\([^ ]*\) v.*/uptrace\/go-clickhouse\1 ${TAG}/" "${dir}/go.mod"
-    (cd ./${dir} && go mod tidy)
+    printf "${dir}: go mod tidy\n"
+    (cd ${dir} && go mod tidy)
 done
 
 
