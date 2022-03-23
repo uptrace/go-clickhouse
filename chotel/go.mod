@@ -4,6 +4,8 @@ go 1.18
 
 replace github.com/uptrace/go-clickhouse => ./..
 
+replace github.com/uptrace/go-clickhouse/chdebug => ../chdebug
+
 require (
 	github.com/uptrace/go-clickhouse v0.2.3
 	go.opentelemetry.io/otel v1.5.0
