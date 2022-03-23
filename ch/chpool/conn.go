@@ -19,7 +19,6 @@ type Conn struct {
 
 	ServerInfo chproto.ServerInfo
 
-	pooled    bool
 	Inited    bool
 	createdAt time.Time
 	usedAt    int64  // atomic
@@ -33,6 +32,7 @@ func NewConn(netConn net.Conn) *Conn {
 		wr:        chproto.NewWriter(netConn),
 		createdAt: time.Now(),
 	}
+	cn.SetUsedAt(time.Now())
 	return cn
 }
 
