@@ -65,9 +65,10 @@ func defaultConfig() *Config {
 		MaxRetryBackoff: time.Second,
 
 		Config: chpool.Config{
-			PoolSize:     poolSize,
-			MaxIdleConns: poolSize,
-			PoolTimeout:  30 * time.Second,
+			PoolSize:        poolSize,
+			PoolTimeout:     30 * time.Second,
+			MaxIdleConns:    poolSize,
+			ConnMaxIdleTime: 30 * time.Minute,
 		},
 	}
 	return cfg
@@ -194,20 +195,25 @@ func WithPoolSize(poolSize int) Option {
 	}
 }
 
-// WithMinIdleConns configures minimum number of idle connections which is useful when establishing
-// new connection is slow.
-func WithMinIdleConns(minIdleConns int) Option {
+// WithConnMaxLifetime sets the maximum amount of time a connection may be reused.
+// Expired connections may be closed lazily before reuse.
+
+// If d <= 0, connections are not closed due to a connection's age.
+func WithConnMaxLifetime(d time.Duration) Option {
 	return func(db *DB) {
-		db.cfg.MinIdleConns = minIdleConns
+		db.cfg.ConnMaxLifetime = d
 	}
 }
 
-// WithMaxConnAge configures Connection age at which client retires (closes) the connection.
-// It is useful with proxies like HAProxy.
-// Default is to not close aged connections.
-func WithMaxConnAge(timeout time.Duration) Option {
+// SetConnMaxIdleTime sets the maximum amount of time a connection may be idle.
+// Expired connections may be closed lazily before reuse.
+//
+// If d <= 0, connections are not closed due to a connection's idle time.
+//
+// ClickHouse closes idle connections after 1 hour (see idle_connection_timeout).
+func WithConnMaxIdleTime(d time.Duration) Option {
 	return func(db *DB) {
-		db.cfg.MaxConnAge = timeout
+		db.cfg.ConnMaxIdleTime = d
 	}
 }
 
