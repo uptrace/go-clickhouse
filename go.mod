@@ -10,8 +10,8 @@ require (
 	github.com/jinzhu/inflection v1.0.0
 	github.com/pierrec/lz4/v4 v4.1.14
 	github.com/stretchr/testify v1.7.1
-	github.com/uptrace/go-clickhouse/chdebug v0.2.3
-	golang.org/x/exp v0.0.0-20220321173239-a90fa8a75705
+	github.com/uptrace/go-clickhouse/chdebug v0.2.4
+	golang.org/x/exp v0.0.0-20220323121947-b445f275a754
 )
 
 require (
