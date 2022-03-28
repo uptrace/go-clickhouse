@@ -1,9 +1,5 @@
 package chproto
 
-import (
-	"fmt"
-)
-
 type ServerInfo struct {
 	Name         string
 	MinorVersion uint64
@@ -25,18 +21,13 @@ func (srv *ServerInfo) ReadFrom(rd *Reader) (err error) {
 		return err
 	}
 
-	timezone, err := rd.String()
-	if err != nil {
+	if _, err := rd.String(); err != nil { // timezone
 		return err
 	}
-	if timezone != "UTC" {
-		return fmt.Errorf("ch: ClickHouse server uses timezone=%q, expected UTC", timezone)
-	}
-
-	if _, err = rd.String(); err != nil { // display name
+	if _, err := rd.String(); err != nil { // display name
 		return err
 	}
-	if _, err = rd.Uvarint(); err != nil { // server version patch
+	if _, err := rd.Uvarint(); err != nil { // server version patch
 		return err
 	}
 

@@ -24,7 +24,7 @@ Main features are:
 
 Unsupported:
 
-- Server timezones other than UTC.
+- `DateTime64`
 
 Resources:
 
