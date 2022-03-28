@@ -106,7 +106,10 @@ func AppendString(b []byte, s string) []byte {
 }
 
 func AppendTime(b []byte, tm time.Time) []byte {
-	return tm.UTC().AppendFormat(b, "'2006-01-02 15:04:05'")
+	b = append(b, "toDateTime('"...)
+	b = tm.UTC().AppendFormat(b, "2006-01-02 15:04:05")
+	b = append(b, "', 'UTC')"...)
+	return b
 }
 
 func AppendBytes(b []byte, bytes []byte) []byte {
