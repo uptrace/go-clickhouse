@@ -1,3 +1,13 @@
+# [](https://github.com/uptrace/go-clickhouse/compare/v0.2.4...v) (2022-03-29)
+
+
+### Bug Fixes
+
+* change rollback to always record migrations ([d6e6e55](https://github.com/uptrace/go-clickhouse/commit/d6e6e55142d6cb369d838357a0700dd1becd50a8))
+* continue working with non UTC timezone ([d003d44](https://github.com/uptrace/go-clickhouse/commit/d003d44e55049b612610d48607809fe3fff5f151))
+
+
+
 # [](https://github.com/uptrace/go-clickhouse/compare/v0.2.3...v) (2022-03-23)
 
 
