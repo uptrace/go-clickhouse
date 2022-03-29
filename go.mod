@@ -11,7 +11,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.14
 	github.com/stretchr/testify v1.7.1
 	github.com/uptrace/go-clickhouse/chdebug v0.2.4
-	golang.org/x/exp v0.0.0-20220323121947-b445f275a754
+	golang.org/x/exp v0.0.0-20220328175248-053ad81199eb
 )
 
 require (

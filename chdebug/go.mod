@@ -15,6 +15,6 @@ require (
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
-	golang.org/x/exp v0.0.0-20220323121947-b445f275a754 // indirect
-	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8 // indirect
+	golang.org/x/exp v0.0.0-20220328175248-053ad81199eb // indirect
+	golang.org/x/sys v0.0.0-20220328115105-d36c6a25d886 // indirect
 )
