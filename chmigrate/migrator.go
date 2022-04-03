@@ -352,7 +352,7 @@ func (m *Migrator) Lock(ctx context.Context) error {
 	if _, err := m.db.ExecContext(
 		ctx,
 		"ALTER TABLE ? ADD COLUMN ? Int8",
-		ch.Safe(m.locksTable), ch.Safe("col1"),
+		ch.Safe(m.locksTable), ch.Safe("lock"),
 	); err != nil {
 		return fmt.Errorf("chmigrate: migrations table is already locked (%w)", err)
 	}
@@ -363,7 +363,7 @@ func (m *Migrator) Unlock(ctx context.Context) error {
 	if _, err := m.db.ExecContext(
 		ctx,
 		"ALTER TABLE ? DROP COLUMN ?",
-		ch.Safe(m.locksTable), ch.Safe("col1"),
+		ch.Safe(m.locksTable), ch.Safe("lock"),
 	); err != nil && !strings.Contains(err.Error(), "Cannot find column") {
 		return fmt.Errorf("chmigrate: migrations table is already unlocked (%w)", err)
 	}
