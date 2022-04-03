@@ -17,6 +17,7 @@ type Migration struct {
 	ch.CHModel `ch:"engine:CollapsingMergeTree(sign)"`
 
 	Name       string `ch:",pk"`
+	Comment    string `ch:"-"`
 	GroupID    int64
 	MigratedAt time.Time
 	Sign       int8
@@ -26,7 +27,7 @@ type Migration struct {
 }
 
 func (m *Migration) String() string {
-	return m.Name
+	return fmt.Sprintf("%s_%s", m.Name, m.Comment)
 }
 
 func (m *Migration) IsApplied() bool {
@@ -128,7 +129,7 @@ func (ms MigrationSlice) String() string {
 		if i > 0 {
 			sb.WriteString(", ")
 		}
-		sb.WriteString(ms[i].Name)
+		sb.WriteString(ms[i].String())
 	}
 
 	return sb.String()
