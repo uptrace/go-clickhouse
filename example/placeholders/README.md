@@ -6,4 +6,6 @@ To run this example:
 go run .
 ```
 
-See [docs](https://clickhouse.uptrace.dev/guide/placeholders.html) for details.
+See
+[ClickHouse SQL placeholders](https://clickhouse.uptrace.dev/guide/clickhouse-sql-placeholders.html)
+for details.

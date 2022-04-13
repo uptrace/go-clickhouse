@@ -36,4 +36,5 @@ To create a SQL migration:
 go run . db create_sql sql_migration_name
 ```
 
-See [docs](https://clickhouse.uptrace.dev/guide/migrations.html) for details.
+See [ClickHouse migrations](https://clickhouse.uptrace.dev/guide/clickhouse-migrations.html) for
+details.

@@ -1,7 +1,8 @@
 # Example for go-clickhouse OpenTelemetry instrumentation
 
-See [Performance and errors monitoring](https://clickhouse.uptrace.dev/guide/monitoring.html) for
-details.
+See
+[Performance and errors monitoring](https://clickhouse.uptrace.dev/guide/clickhouse-monitoring-performance.html)
+for details.
 
 You can run this example with different OpenTelemetry exporters by providing environment variables.
 
