@@ -20,6 +20,7 @@ Main features are:
 - [Bun](https://github.com/uptrace/bun/)-like query builder.
 - [Selecting](https://clickhouse.uptrace.dev/guide/clickhouse-select.html) into scalars, structs,
   maps, slices of maps/structs/scalars.
+- `Date`, `DateTime`, and `DateTime64`.
 - `Array(T)` including nested arrays.
 - Enums and `LowCardinality(String)`.
 - `Nullable(T)` except `Nullable(Array(T))`.
@@ -27,10 +28,6 @@ Main features are:
 - [OpenTelemetry](https://clickhouse.uptrace.dev/guide/clickhouse-monitoring-performance.html)
   support.
 - In production at [Uptrace](https://uptrace.dev/)
-
-Unsupported:
-
-- `DateTime64`
 
 Resources:
 
