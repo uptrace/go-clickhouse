@@ -244,6 +244,29 @@ func TestScanArrayUint8(t *testing.T) {
 	require.Equal(t, map[string]any{"ns": []uint8{0, 1, 2}}, m)
 }
 
+func TestDateTime64(t *testing.T) {
+	type Model struct {
+		Time time.Time `ch:"type:DateTime64(9)"`
+	}
+
+	ctx := context.Background()
+
+	db := chDB()
+	defer db.Close()
+
+	err := db.ResetModel(ctx, (*Model)(nil))
+	require.NoError(t, err)
+
+	in := &Model{Time: time.Unix(0, 12345678912345)}
+	_, err = db.NewInsert().Model(in).Exec(ctx)
+	require.NoError(t, err)
+
+	out := new(Model)
+	err = db.NewSelect().Model(out).Scan(ctx)
+	require.NoError(t, err)
+	require.Equal(t, in.Time.UnixNano(), out.Time.UnixNano())
+}
+
 type Event struct {
 	ch.CHModel `ch:"goch_events,partition:toYYYYMM(created_at)"`
 

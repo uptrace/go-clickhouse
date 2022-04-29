@@ -855,6 +855,54 @@ func (c DateTimeColumn) WriteTo(wr *chproto.Writer) error {
 
 //------------------------------------------------------------------------------
 
+type DateTime64Column struct {
+	ColumnOf[time.Time]
+	prec int
+}
+
+var _ Columnar = (*DateTime64Column)(nil)
+
+func NewDateTime64Column(typ reflect.Type, chType string, numRow int) Columnar {
+	return &DateTime64Column{
+		ColumnOf: NewColumnOf[time.Time](numRow),
+		prec:     parseDateTime64Prec(chType),
+	}
+}
+
+func (c *DateTime64Column) Type() reflect.Type {
+	return timeType
+}
+
+func (c *DateTime64Column) ConvertAssign(idx int, v reflect.Value) error {
+	v.Set(reflect.ValueOf(c.Column[idx]))
+	return nil
+}
+
+func (c *DateTime64Column) ReadFrom(rd *chproto.Reader, numRow int) error {
+	c.Alloc(numRow)
+
+	mul := int64(math.Pow10(9 - c.prec))
+	for i := range c.Column {
+		n, err := rd.Int64()
+		if err != nil {
+			return err
+		}
+		c.Column[i] = time.Unix(0, n*mul)
+	}
+
+	return nil
+}
+
+func (c *DateTime64Column) WriteTo(wr *chproto.Writer) error {
+	div := int64(math.Pow10(9 - c.prec))
+	for i := range c.Column {
+		wr.Int64(c.Column[i].UnixNano() / div)
+	}
+	return nil
+}
+
+//------------------------------------------------------------------------------
+
 type Int64TimeColumn struct {
 	Int64Column
 }

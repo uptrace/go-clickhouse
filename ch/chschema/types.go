@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -132,6 +133,9 @@ func ColumnFactory(typ reflect.Type, chType string) NewColumnFunc {
 	if s := enumType(chType); s != "" {
 		return NewEnumColumn
 	}
+	if isDateTime64Type(chType) {
+		return NewDateTime64Column
+	}
 
 	if strings.HasPrefix(chType, "SimpleAggregateFunction(") {
 		chType = chSubType(chType, "SimpleAggregateFunction(")
@@ -236,6 +240,8 @@ func columnFromCHType(chType string) NewColumnFunc {
 		return NewFloat64Column
 	case chtype.DateTime:
 		return NewDateTimeColumn
+	case chtype.DateTime64:
+		return NewDateTime64Column
 	case chtype.Date:
 		return NewDateColumn
 	case chtype.IPv6:
@@ -258,13 +264,12 @@ var (
 	float32Type = reflect.TypeOf(float32(0))
 	float64Type = reflect.TypeOf(float64(0))
 
-	stringType       = reflect.TypeOf("")
-	bytesType        = reflect.TypeOf((*[]byte)(nil)).Elem()
-	uuidType         = reflect.TypeOf((*UUID)(nil)).Elem()
-	timeType         = reflect.TypeOf((*time.Time)(nil)).Elem()
-	ipType           = reflect.TypeOf((*net.IP)(nil)).Elem()
-	ipNetType        = reflect.TypeOf((*net.IPNet)(nil)).Elem()
-	bfloat16HistType = reflect.TypeOf((*map[chtype.BFloat16]uint64)(nil)).Elem()
+	stringType = reflect.TypeOf("")
+	bytesType  = reflect.TypeOf((*[]byte)(nil)).Elem()
+	uuidType   = reflect.TypeOf((*UUID)(nil)).Elem()
+	timeType   = reflect.TypeOf((*time.Time)(nil)).Elem()
+	ipType     = reflect.TypeOf((*net.IP)(nil)).Elem()
+	ipNetType  = reflect.TypeOf((*net.IPNet)(nil)).Elem()
 
 	int64SliceType   = reflect.TypeOf((*[]int64)(nil)).Elem()
 	uint64SliceType  = reflect.TypeOf((*[]uint64)(nil)).Elem()
@@ -318,6 +323,9 @@ func goType(chType string) reflect.Type {
 	if s := dateTimeType(chType); s != "" {
 		return timeType
 	}
+	if isDateTime64Type(chType) {
+		return timeType
+	}
 	if s := nullableType(chType); s != "" {
 		return reflect.PtrTo(goType(s))
 	}
@@ -364,6 +372,22 @@ func dateTimeType(s string) string {
 		internal.Logger.Printf("DateTime has timezeone=%q, expected UTC", s)
 	}
 	return chtype.DateTime
+}
+
+func isDateTime64Type(s string) bool {
+	return chSubType(s, "DateTime64(") != ""
+}
+
+func parseDateTime64Prec(s string) int {
+	s = chSubType(s, "DateTime64(")
+	if s == "" {
+		return 0
+	}
+	prec, err := strconv.Atoi(s)
+	if err != nil {
+		return 0
+	}
+	return prec
 }
 
 func nullableType(s string) string {
