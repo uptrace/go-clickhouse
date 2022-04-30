@@ -191,13 +191,20 @@ func (q *InsertQuery) Exec(ctx context.Context) (sql.Result, error) {
 	}
 	query := internal.String(queryBytes)
 
-	fields, err := q.getFields()
-	if err != nil {
-		return nil, err
+	ctx, evt := q.db.beforeQuery(ctx, q, query, nil, q.tableModel)
+	var res *result
+
+	if q.tableModel != nil {
+		fields, err := q.getFields()
+		if err != nil {
+			return nil, err
+		}
+		res, err = q.db.insert(ctx, q.tableModel, query, fields)
+	} else {
+		res, err = q.db.exec(ctx, query)
 	}
 
-	ctx, evt := q.db.beforeQuery(ctx, q, query, nil, q.tableModel)
-	res, err := q.db.insert(ctx, q.tableModel, query, fields)
 	q.db.afterQuery(ctx, evt, res, err)
+
 	return res, err
 }
