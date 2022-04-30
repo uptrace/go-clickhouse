@@ -94,13 +94,46 @@ func (q *baseQuery) newModel(values ...any) (Model, error) {
 	return q.tableModel, nil
 }
 
+func (q *baseQuery) query(ctx context.Context, model Model, query string) (*result, error) {
+	blocks, err := q.db.query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &result{
+		model: model,
+	}
+	block := new(chschema.Block)
+	if model, ok := model.(TableModel); ok {
+		block.Table = model.Table()
+	}
+
+	for blocks.Next(ctx, block) {
+		if err := model.ScanBlock(block); err != nil {
+			return nil, err
+		}
+		res.affected += block.NumRow
+	}
+	if err := blocks.Err(); err != nil {
+		return nil, err
+	}
+
+	if model, ok := model.(AfterScanRowHook); ok {
+		if err := model.AfterScanRow(ctx); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
+}
+
 func (q *baseQuery) exec(
 	ctx context.Context,
 	iquery Query,
 	query string,
 ) (sql.Result, error) {
 	ctx, event := q.db.beforeQuery(ctx, iquery, query, nil, q.tableModel)
-	res, err := q.db.query(ctx, nil, query)
+	res, err := q.db.exec(ctx, query)
 	q.db.afterQuery(ctx, event, res, err)
 	return res, err
 }

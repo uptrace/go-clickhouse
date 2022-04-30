@@ -37,7 +37,7 @@ type Columnar interface {
 	Set(v any)
 	AppendValue(v reflect.Value)
 	Value() any
-	Nullable(nulls Uint8Column) any
+	Nullable(nulls UInt8Column) any
 	Len() int
 	Index(idx int) any
 	Slice(s, e int) any
@@ -89,7 +89,7 @@ func (c ColumnOf[T]) Value() any {
 	return c.Column
 }
 
-func (c ColumnOf[T]) Nullable(nulls Uint8Column) any {
+func (c ColumnOf[T]) Nullable(nulls UInt8Column) any {
 	nullable := make([]*T, len(c.Column))
 	for i := range c.Column {
 		if nulls.Column[i] == 0 {
@@ -221,27 +221,6 @@ func (c *Int8Column) AppendValue(v reflect.Value) {
 	c.Column = append(c.Column, int8(v.Int()))
 }
 
-func (c *Int8Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
-
-	for i := range c.Column {
-		n, err := rd.Int8()
-		if err != nil {
-			return err
-		}
-		c.Column[i] = n
-	}
-
-	return nil
-}
-
-func (c Int8Column) WriteTo(wr *chproto.Writer) error {
-	for _, n := range c.Column {
-		wr.Int8(n)
-	}
-	return nil
-}
-
 //------------------------------------------------------------------------------
 
 type Int16Column struct {
@@ -262,27 +241,6 @@ func (c Int16Column) Type() reflect.Type {
 
 func (c *Int16Column) AppendValue(v reflect.Value) {
 	c.Column = append(c.Column, int16(v.Int()))
-}
-
-func (c *Int16Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
-
-	for i := range c.Column {
-		n, err := rd.Int16()
-		if err != nil {
-			return err
-		}
-		c.Column[i] = n
-	}
-
-	return nil
-}
-
-func (c Int16Column) WriteTo(wr *chproto.Writer) error {
-	for _, n := range c.Column {
-		wr.Int16(n)
-	}
-	return nil
 }
 
 //------------------------------------------------------------------------------
@@ -307,27 +265,6 @@ func (c *Int32Column) AppendValue(v reflect.Value) {
 	c.Column = append(c.Column, int32(v.Int()))
 }
 
-func (c *Int32Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
-
-	for i := range c.Column {
-		n, err := rd.Int32()
-		if err != nil {
-			return err
-		}
-		c.Column[i] = n
-	}
-
-	return nil
-}
-
-func (c Int32Column) WriteTo(wr *chproto.Writer) error {
-	for _, n := range c.Column {
-		wr.Int32(n)
-	}
-	return nil
-}
-
 //------------------------------------------------------------------------------
 
 type Int64Column struct {
@@ -350,197 +287,92 @@ func (c *Int64Column) AppendValue(v reflect.Value) {
 	c.Column = append(c.Column, v.Int())
 }
 
-func (c *Int64Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
-
-	for i := range c.Column {
-		n, err := rd.Int64()
-		if err != nil {
-			return err
-		}
-		c.Column[i] = n
-	}
-
-	return nil
-}
-
-func (c Int64Column) WriteTo(wr *chproto.Writer) error {
-	for _, n := range c.Column {
-		wr.Int64(n)
-	}
-	return nil
-}
-
 //------------------------------------------------------------------------------
 
-type Uint8Column struct {
+type UInt8Column struct {
 	NumericColumnOf[uint8]
 }
 
-var _ Columnar = (*Uint8Column)(nil)
+var _ Columnar = (*UInt8Column)(nil)
 
-func NewUint8Column(typ reflect.Type, chType string, numRow int) Columnar {
-	return &Uint8Column{
+func NewUInt8Column(typ reflect.Type, chType string, numRow int) Columnar {
+	return &UInt8Column{
 		NumericColumnOf: NewNumericColumnOf[uint8](numRow),
 	}
 }
 
-func (c Uint8Column) Type() reflect.Type {
+func (c UInt8Column) Type() reflect.Type {
 	return uint8Type
 }
 
-func (c *Uint8Column) AppendValue(v reflect.Value) {
+func (c *UInt8Column) AppendValue(v reflect.Value) {
 	c.Column = append(c.Column, uint8(v.Uint()))
-}
-
-func (c *Uint8Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
-
-	for i := range c.Column {
-		n, err := rd.Uint8()
-		if err != nil {
-			return err
-		}
-		c.Column[i] = n
-	}
-
-	return nil
-}
-
-func (c Uint8Column) WriteTo(wr *chproto.Writer) error {
-	for _, n := range c.Column {
-		wr.Uint8(n)
-	}
-	return nil
 }
 
 //------------------------------------------------------------------------------
 
-type Uint16Column struct {
+type UInt16Column struct {
 	NumericColumnOf[uint16]
 }
 
-var _ Columnar = (*Uint16Column)(nil)
+var _ Columnar = (*UInt16Column)(nil)
 
-func NewUint16Column(typ reflect.Type, chType string, numRow int) Columnar {
-	return &Uint16Column{
+func NewUInt16Column(typ reflect.Type, chType string, numRow int) Columnar {
+	return &UInt16Column{
 		NumericColumnOf: NewNumericColumnOf[uint16](numRow),
 	}
 }
 
-func (c Uint16Column) Type() reflect.Type {
+func (c UInt16Column) Type() reflect.Type {
 	return uint16Type
 }
 
-func (c *Uint16Column) AppendValue(v reflect.Value) {
+func (c *UInt16Column) AppendValue(v reflect.Value) {
 	c.Column = append(c.Column, uint16(v.Uint()))
-}
-
-func (c *Uint16Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
-
-	for i := range c.Column {
-		n, err := rd.Uint16()
-		if err != nil {
-			return err
-		}
-		c.Column[i] = n
-	}
-
-	return nil
-}
-
-func (c Uint16Column) WriteTo(wr *chproto.Writer) error {
-	for _, n := range c.Column {
-		wr.Uint16(n)
-	}
-	return nil
 }
 
 //------------------------------------------------------------------------------
 
-type Uint32Column struct {
+type UInt32Column struct {
 	NumericColumnOf[uint32]
 }
 
-var _ Columnar = (*Uint32Column)(nil)
+var _ Columnar = (*UInt32Column)(nil)
 
-func NewUint32Column(typ reflect.Type, chType string, numRow int) Columnar {
-	return &Uint32Column{
+func NewUInt32Column(typ reflect.Type, chType string, numRow int) Columnar {
+	return &UInt32Column{
 		NumericColumnOf: NewNumericColumnOf[uint32](numRow),
 	}
 }
 
-func (c Uint32Column) Type() reflect.Type {
+func (c UInt32Column) Type() reflect.Type {
 	return uint32Type
 }
 
-func (c *Uint32Column) AppendValue(v reflect.Value) {
+func (c *UInt32Column) AppendValue(v reflect.Value) {
 	c.Column = append(c.Column, uint32(v.Uint()))
-}
-
-func (c *Uint32Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
-
-	for i := range c.Column {
-		n, err := rd.Uint32()
-		if err != nil {
-			return err
-		}
-		c.Column[i] = n
-	}
-
-	return nil
-}
-
-func (c Uint32Column) WriteTo(wr *chproto.Writer) error {
-	for _, n := range c.Column {
-		wr.Uint32(n)
-	}
-	return nil
 }
 
 //------------------------------------------------------------------------------
 
-type Uint64Column struct {
+type UInt64Column struct {
 	NumericColumnOf[uint64]
 }
 
-var _ Columnar = (*Uint64Column)(nil)
+var _ Columnar = (*UInt64Column)(nil)
 
-func NewUint64Column(typ reflect.Type, chType string, numRow int) Columnar {
-	return &Uint64Column{
+func NewUInt64Column(typ reflect.Type, chType string, numRow int) Columnar {
+	return &UInt64Column{
 		NumericColumnOf: NewNumericColumnOf[uint64](numRow),
 	}
 }
 
-func (c Uint64Column) Type() reflect.Type {
+func (c UInt64Column) Type() reflect.Type {
 	return uint64Type
 }
 
-func (c *Uint64Column) AppendValue(v reflect.Value) {
+func (c *UInt64Column) AppendValue(v reflect.Value) {
 	c.Column = append(c.Column, v.Uint())
-}
-
-func (c *Uint64Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
-
-	for i := range c.Column {
-		n, err := rd.Uint64()
-		if err != nil {
-			return err
-		}
-		c.Column[i] = n
-	}
-
-	return nil
-}
-
-func (c Uint64Column) WriteTo(wr *chproto.Writer) error {
-	for _, n := range c.Column {
-		wr.Uint64(n)
-	}
-	return nil
 }
 
 //------------------------------------------------------------------------------
@@ -565,27 +397,6 @@ func (c *Float32Column) AppendValue(v reflect.Value) {
 	c.Column = append(c.Column, float32(v.Float()))
 }
 
-func (c *Float32Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
-
-	for i := range c.Column {
-		n, err := rd.Float32()
-		if err != nil {
-			return err
-		}
-		c.Column[i] = n
-	}
-
-	return nil
-}
-
-func (c Float32Column) WriteTo(wr *chproto.Writer) error {
-	for _, n := range c.Column {
-		wr.Float32(n)
-	}
-	return nil
-}
-
 //------------------------------------------------------------------------------
 
 type Float64Column struct {
@@ -606,27 +417,6 @@ func (c Float64Column) Type() reflect.Type {
 
 func (c *Float64Column) AppendValue(v reflect.Value) {
 	c.Column = append(c.Column, v.Float())
-}
-
-func (c *Float64Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
-
-	for i := range c.Column {
-		n, err := rd.Float64()
-		if err != nil {
-			return err
-		}
-		c.Column[i] = n
-	}
-
-	return nil
-}
-
-func (c Float64Column) WriteTo(wr *chproto.Writer) error {
-	for _, n := range c.Column {
-		wr.Float64(n)
-	}
-	return nil
 }
 
 //------------------------------------------------------------------------------
@@ -921,7 +711,7 @@ func (c *Int64TimeColumn) ReadFrom(rd *chproto.Reader, numRow int) error {
 	c.Alloc(numRow)
 
 	for i := range c.Column {
-		n, err := rd.Uint32()
+		n, err := rd.UInt32()
 		if err != nil {
 			return err
 		}
@@ -933,7 +723,7 @@ func (c *Int64TimeColumn) ReadFrom(rd *chproto.Reader, numRow int) error {
 
 func (c Int64TimeColumn) WriteTo(wr *chproto.Writer) error {
 	for i := range c.Column {
-		wr.Uint32(uint32(c.Column[i] / int64(time.Second)))
+		wr.UInt32(uint32(c.Column[i] / int64(time.Second)))
 	}
 	return nil
 }
@@ -1217,7 +1007,7 @@ func (c *LCStringColumn) readData(rd *chproto.Reader, numRow int) error {
 	}
 	lcKey := newLCKeyType(flags & 0xf)
 
-	dictSize, err := rd.Uint64()
+	dictSize, err := rd.UInt64()
 	if err != nil {
 		return err
 	}
@@ -1232,7 +1022,7 @@ func (c *LCStringColumn) readData(rd *chproto.Reader, numRow int) error {
 		dict[i] = s
 	}
 
-	numKey, err := rd.Uint64()
+	numKey, err := rd.UInt64()
 	if err != nil {
 		return err
 	}
@@ -1325,44 +1115,44 @@ func newLCKeyType(typ int64) lcKey {
 		return lcKey{
 			typ: 0,
 			read: func(rd *chproto.Reader) (int, error) {
-				n, err := rd.Uint8()
+				n, err := rd.UInt8()
 				return int(n), err
 			},
 			write: func(wr *chproto.Writer, n int) {
-				wr.Uint8(uint8(n))
+				wr.UInt8(uint8(n))
 			},
 		}
 	case 1:
 		return lcKey{
 			typ: int8(1),
 			read: func(rd *chproto.Reader) (int, error) {
-				n, err := rd.Uint16()
+				n, err := rd.UInt16()
 				return int(n), err
 			},
 			write: func(wr *chproto.Writer, n int) {
-				wr.Uint16(uint16(n))
+				wr.UInt16(uint16(n))
 			},
 		}
 	case 2:
 		return lcKey{
 			typ: 2,
 			read: func(rd *chproto.Reader) (int, error) {
-				n, err := rd.Uint32()
+				n, err := rd.UInt32()
 				return int(n), err
 			},
 			write: func(wr *chproto.Writer, n int) {
-				wr.Uint32(uint32(n))
+				wr.UInt32(uint32(n))
 			},
 		}
 	case 3:
 		return lcKey{
 			typ: 3,
 			read: func(rd *chproto.Reader) (int, error) {
-				n, err := rd.Uint64()
+				n, err := rd.UInt64()
 				return int(n), err
 			},
 			write: func(wr *chproto.Writer, n int) {
-				wr.Uint64(uint64(n))
+				wr.UInt64(uint64(n))
 			},
 		}
 	default:

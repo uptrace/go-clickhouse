@@ -49,6 +49,11 @@ func (cn *Conn) RemoteAddr() net.Addr {
 	return cn.netConn.RemoteAddr()
 }
 
+func (cn *Conn) Reader(ctx context.Context, timeout time.Duration) *chproto.Reader {
+	_ = cn.netConn.SetReadDeadline(cn.deadline(ctx, timeout))
+	return cn.rd
+}
+
 func (cn *Conn) WithReader(
 	ctx context.Context,
 	timeout time.Duration,

@@ -17,8 +17,9 @@ type lz4Reader struct {
 
 	header []byte
 
-	data []byte
-	pos  int
+	zdata []byte
+	data  []byte
+	pos   int
 }
 
 func newLZ4Reader(r *bufio.Reader) *lz4Reader {
@@ -37,8 +38,9 @@ func (r *lz4Reader) Release() error {
 		err = errUnreadData
 	}
 
-	r.data = nil
+	r.data = r.data[:0]
 	r.pos = 0
+	r.zdata = r.zdata[:0]
 
 	return err
 }
@@ -102,13 +104,13 @@ func (r *lz4Reader) readData() error {
 	compressedSize := int(binary.LittleEndian.Uint32(r.header[17:])) - compressionHeaderSize
 	uncompressedSize := int(binary.LittleEndian.Uint32(r.header[21:]))
 
-	zdata := make([]byte, compressedSize)
+	r.zdata = grow(r.zdata, compressedSize)
 	r.data = grow(r.data, uncompressedSize)
 
-	if _, err := io.ReadFull(r.rd, zdata); err != nil {
+	if _, err := io.ReadFull(r.rd, r.zdata); err != nil {
 		return err
 	}
-	if _, err := lz4.UncompressBlock(zdata, r.data); err != nil {
+	if _, err := lz4.UncompressBlock(r.zdata, r.data); err != nil {
 		return err
 	}
 

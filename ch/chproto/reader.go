@@ -70,7 +70,7 @@ func (r *Reader) Uvarint() (uint64, error) {
 	return binary.ReadUvarint(r.rd)
 }
 
-func (r *Reader) Uint8() (uint8, error) {
+func (r *Reader) UInt8() (uint8, error) {
 	c, err := r.rd.ReadByte()
 	if err != nil {
 		return 0, err
@@ -78,7 +78,7 @@ func (r *Reader) Uint8() (uint8, error) {
 	return c, nil
 }
 
-func (r *Reader) Uint16() (uint16, error) {
+func (r *Reader) UInt16() (uint16, error) {
 	b, err := r.readNTemp(2)
 	if err != nil {
 		return 0, err
@@ -86,7 +86,7 @@ func (r *Reader) Uint16() (uint16, error) {
 	return binary.LittleEndian.Uint16(b), nil
 }
 
-func (r *Reader) Uint32() (uint32, error) {
+func (r *Reader) UInt32() (uint32, error) {
 	b, err := r.readNTemp(4)
 	if err != nil {
 		return 0, err
@@ -94,7 +94,7 @@ func (r *Reader) Uint32() (uint32, error) {
 	return binary.LittleEndian.Uint32(b), nil
 }
 
-func (r *Reader) Uint64() (uint64, error) {
+func (r *Reader) UInt64() (uint64, error) {
 	b, err := r.readNTemp(8)
 	if err != nil {
 		return 0, err
@@ -103,27 +103,27 @@ func (r *Reader) Uint64() (uint64, error) {
 }
 
 func (r *Reader) Int8() (int8, error) {
-	num, err := r.Uint8()
+	num, err := r.UInt8()
 	return int8(num), err
 }
 
 func (r *Reader) Int16() (int16, error) {
-	num, err := r.Uint16()
+	num, err := r.UInt16()
 	return int16(num), err
 }
 
 func (r *Reader) Int32() (int32, error) {
-	num, err := r.Uint32()
+	num, err := r.UInt32()
 	return int32(num), err
 }
 
 func (r *Reader) Int64() (int64, error) {
-	num, err := r.Uint64()
+	num, err := r.UInt64()
 	return int64(num), err
 }
 
 func (r *Reader) Float32() (float32, error) {
-	num, err := r.Uint32()
+	num, err := r.UInt32()
 	if err != nil {
 		return 0, err
 	}
@@ -131,7 +131,7 @@ func (r *Reader) Float32() (float32, error) {
 }
 
 func (r *Reader) Float64() (float64, error) {
-	num, err := r.Uint64()
+	num, err := r.UInt64()
 	if err != nil {
 		return 0, err
 	}
@@ -180,7 +180,7 @@ func (r *Reader) readNTemp(n int) ([]byte, error) {
 }
 
 func (r *Reader) DateTime() (time.Time, error) {
-	sec, err := r.Uint32()
+	sec, err := r.UInt32()
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -191,7 +191,7 @@ func (r *Reader) DateTime() (time.Time, error) {
 }
 
 func (r *Reader) Date() (time.Time, error) {
-	days, err := r.Uint16()
+	days, err := r.UInt16()
 	if err != nil {
 		return time.Time{}, err
 	}

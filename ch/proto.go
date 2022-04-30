@@ -20,6 +20,81 @@ const (
 	chRevision     = 54428
 )
 
+type blockIter struct {
+	db *DB
+	cn *chpool.Conn
+
+	stickyErr error
+}
+
+func newBlockIter(db *DB, cn *chpool.Conn) *blockIter {
+	return &blockIter{
+		db: db,
+		cn: cn,
+	}
+}
+
+func (it *blockIter) Close() error {
+	if it.cn != nil {
+		it.db.releaseConn(it.cn, it.stickyErr)
+		it.cn = nil
+	}
+	return nil
+}
+
+func (it *blockIter) Err() error {
+	return it.stickyErr
+}
+
+func (it *blockIter) Next(ctx context.Context, block *chschema.Block) bool {
+	if it.stickyErr != nil {
+		return false
+	}
+
+	ok, err := it.read(ctx, block)
+	if err != nil {
+		it.stickyErr = err
+		return false
+	}
+	return ok
+}
+
+func (it *blockIter) read(ctx context.Context, block *chschema.Block) (bool, error) {
+	rd := it.cn.Reader(ctx, it.db.cfg.ReadTimeout)
+	for {
+		packet, err := rd.Uvarint()
+		if err != nil {
+			return false, err
+		}
+
+		switch packet {
+		case chproto.ServerData:
+			if err := readBlock(rd, block); err != nil {
+				return false, err
+			}
+			return true, nil
+		case chproto.ServerException:
+			return false, readException(rd)
+		case chproto.ServerProgress:
+			if err := readProgress(rd); err != nil {
+				return false, err
+			}
+		case chproto.ServerProfileInfo:
+			if err := readProfileInfo(rd); err != nil {
+				return false, err
+			}
+		case chproto.ServerTableColumns:
+			if err := readServerTableColumns(rd); err != nil {
+				return false, err
+			}
+		case chproto.ServerEndOfStream:
+			return false, nil
+		default:
+			return false, fmt.Errorf("ch: blockIter.Next: unexpected packet: %d", packet)
+		}
+	}
+}
+
 func (db *DB) hello(ctx context.Context, cn *chpool.Conn) error {
 	err := cn.WithWriter(ctx, db.cfg.WriteTimeout, func(wr *chproto.Writer) {
 		wr.Uvarint(chproto.ClientHello)
@@ -254,8 +329,9 @@ func readSampleBlock(rd *chproto.Reader) (*chschema.Block, error) {
 	}
 }
 
-func readDataBlocks(rd *chproto.Reader, model Model) (*result, error) {
+func readDataBlocks(rd *chproto.Reader) (*result, error) {
 	var res *result
+	block := new(chschema.Block)
 	for {
 		packet, err := rd.Uvarint()
 		if err != nil {
@@ -264,11 +340,6 @@ func readDataBlocks(rd *chproto.Reader, model Model) (*result, error) {
 
 		switch packet {
 		case chproto.ServerData:
-			block := new(chschema.Block)
-			if model, ok := model.(TableModel); ok {
-				block.Table = model.Table()
-			}
-
 			if err := readBlock(rd, block); err != nil {
 				return nil, err
 			}
@@ -277,12 +348,6 @@ func readDataBlocks(rd *chproto.Reader, model Model) (*result, error) {
 				res = new(result)
 			}
 			res.affected += block.NumRow
-
-			if model != nil {
-				if err := model.ScanBlock(block); err != nil {
-					return nil, err
-				}
-			}
 		case chproto.ServerException:
 			return nil, readException(rd)
 		case chproto.ServerProgress:
@@ -337,7 +402,6 @@ func readPacket(rd *chproto.Reader) (*result, error) {
 	}
 }
 
-// TODO: return block
 func readBlock(rd *chproto.Reader, block *chschema.Block) error {
 	if _, err := rd.String(); err != nil {
 		return err

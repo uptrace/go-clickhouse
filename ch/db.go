@@ -225,8 +225,45 @@ func (db *DB) ExecContext(
 ) (sql.Result, error) {
 	query = db.FormatQuery(query, args...)
 	ctx, evt := db.beforeQuery(ctx, nil, query, args, nil)
-	res, err := db.query(ctx, nil, query)
+	res, err := db.exec(ctx, query)
 	db.afterQuery(ctx, evt, res, err)
+	return res, err
+}
+
+func (db *DB) exec(ctx context.Context, query string) (*result, error) {
+	var res *result
+	var lastErr error
+	for attempt := 0; attempt <= db.cfg.MaxRetries; attempt++ {
+		if attempt > 0 {
+			lastErr = internal.Sleep(ctx, db.retryBackoff(attempt-1))
+			if lastErr != nil {
+				break
+			}
+		}
+
+		res, lastErr = db._exec(ctx, query)
+		if !db.shouldRetry(lastErr) {
+			break
+		}
+	}
+	return res, lastErr
+}
+
+func (db *DB) _exec(ctx context.Context, query string) (*result, error) {
+	var res *result
+	err := db.withConn(ctx, func(cn *chpool.Conn) error {
+		if err := cn.WithWriter(ctx, db.cfg.WriteTimeout, func(wr *chproto.Writer) {
+			db.writeQuery(wr, query)
+			writeBlock(ctx, wr, nil)
+		}); err != nil {
+			return err
+		}
+		return cn.WithReader(ctx, db.cfg.ReadTimeout, func(rd *chproto.Reader) error {
+			var err error
+			res, err = readDataBlocks(rd)
+			return err
+		})
+	})
 	return res, err
 }
 
@@ -237,16 +274,16 @@ func (db *DB) Query(query string, args ...any) (*Rows, error) {
 func (db *DB) QueryContext(
 	ctx context.Context, query string, args ...any,
 ) (*Rows, error) {
-	rows := newRows()
 	query = db.FormatQuery(query, args...)
 
 	ctx, evt := db.beforeQuery(ctx, nil, query, args, nil)
-	res, err := db.query(ctx, rows, query)
-	db.afterQuery(ctx, evt, res, err)
+	blocks, err := db.query(ctx, query)
+	db.afterQuery(ctx, evt, nil, err)
 	if err != nil {
 		return nil, err
 	}
-	return rows, nil
+
+	return newRows(ctx, blocks), nil
 }
 
 func (db *DB) QueryRow(query string, args ...any) *Row {
@@ -258,9 +295,10 @@ func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *R
 	return &Row{rows: rows, err: err}
 }
 
-func (db *DB) query(ctx context.Context, model Model, query string) (*result, error) {
-	var res *result
+func (db *DB) query(ctx context.Context, query string) (*blockIter, error) {
+	var blocks *blockIter
 	var lastErr error
+
 	for attempt := 0; attempt <= db.cfg.MaxRetries; attempt++ {
 		if attempt > 0 {
 			lastErr = internal.Sleep(ctx, db.retryBackoff(attempt-1))
@@ -269,39 +307,29 @@ func (db *DB) query(ctx context.Context, model Model, query string) (*result, er
 			}
 		}
 
-		res, lastErr = db._query(ctx, model, query)
+		blocks, lastErr = db._query(ctx, query)
 		if !db.shouldRetry(lastErr) {
 			break
 		}
 	}
 
-	if lastErr == nil {
-		if model, ok := model.(AfterScanRowHook); ok {
-			if err := model.AfterScanRow(ctx); err != nil {
-				lastErr = err
-			}
-		}
-	}
-
-	return res, lastErr
+	return blocks, lastErr
 }
 
-func (db *DB) _query(ctx context.Context, model Model, query string) (*result, error) {
-	var res *result
-	err := db.withConn(ctx, func(cn *chpool.Conn) error {
-		if err := cn.WithWriter(ctx, db.cfg.WriteTimeout, func(wr *chproto.Writer) {
-			db.writeQuery(wr, query)
-			writeBlock(ctx, wr, nil)
-		}); err != nil {
-			return err
-		}
-		return cn.WithReader(ctx, db.cfg.ReadTimeout, func(rd *chproto.Reader) error {
-			var err error
-			res, err = readDataBlocks(rd, model)
-			return err
-		})
-	})
-	return res, err
+func (db *DB) _query(ctx context.Context, query string) (*blockIter, error) {
+	cn, err := db.getConn(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := cn.WithWriter(ctx, db.cfg.WriteTimeout, func(wr *chproto.Writer) {
+		db.writeQuery(wr, query)
+		writeBlock(ctx, wr, nil)
+	}); err != nil {
+		return nil, err
+	}
+
+	return newBlockIter(db, cn), nil
 }
 
 func (db *DB) insert(
@@ -454,19 +482,35 @@ func (db *DB) makeQueryBytes() []byte {
 // Rows is the result of a query. Its cursor starts before the first row of the result set.
 // Use Next to advance from row to row.
 type Rows struct {
-	blocks []*chschema.Block
+	ctx    context.Context
+	blocks *blockIter
+	block  *chschema.Block
 
-	block      *chschema.Block
-	blockIndex int
-	rowIndex   int
+	rowIndex int
+	hasNext  bool
+	closed   bool
 }
 
-func newRows() *Rows {
-	return new(Rows)
+func newRows(ctx context.Context, blocks *blockIter) *Rows {
+	return &Rows{
+		ctx:    ctx,
+		blocks: blocks,
+		block:  new(chschema.Block),
+	}
 }
 
 func (rs *Rows) Close() error {
+	if !rs.closed {
+		for rs.blocks.Next(rs.ctx, rs.block) {
+		}
+		rs.close()
+	}
 	return nil
+}
+
+func (rs *Rows) close() {
+	rs.closed = true
+	_ = rs.blocks.Close()
 }
 
 func (rs *Rows) ColumnTypes() ([]*sql.ColumnType, error) {
@@ -478,25 +522,25 @@ func (rs *Rows) Columns() ([]string, error) {
 }
 
 func (rs *Rows) Err() error {
-	return nil
+	return rs.blocks.Err()
 }
 
 func (rs *Rows) Next() bool {
-	if rs.block != nil && rs.rowIndex < rs.block.NumRow {
-		rs.rowIndex++
-		return true
+	if rs.closed {
+		return false
 	}
 
-	for rs.blockIndex < len(rs.blocks) {
-		rs.block = rs.blocks[rs.blockIndex]
-		rs.blockIndex++
-		if rs.block.NumRow > 0 {
-			rs.rowIndex = 1
-			return true
+	for rs.rowIndex >= rs.block.NumRow {
+		if !rs.blocks.Next(rs.ctx, rs.block) {
+			rs.close()
+			return false
 		}
+		rs.rowIndex = 0
 	}
 
-	return false
+	rs.hasNext = true
+	rs.rowIndex++
+	return true
 }
 
 func (rs *Rows) NextResultSet() bool {
@@ -504,9 +548,14 @@ func (rs *Rows) NextResultSet() bool {
 }
 
 func (rs *Rows) Scan(dest ...any) error {
-	if rs.block == nil {
+	if rs.closed {
+		return rs.Err()
+	}
+
+	if !rs.hasNext {
 		return errors.New("ch: Scan called without calling Next")
 	}
+	rs.hasNext = false
 
 	if rs.block.NumColumn != len(dest) {
 		return fmt.Errorf("ch: got %d columns, but Scan has %d values",
@@ -519,11 +568,6 @@ func (rs *Rows) Scan(dest ...any) error {
 		}
 	}
 
-	return nil
-}
-
-func (rs *Rows) ScanBlock(block *chschema.Block) error {
-	rs.blocks = append(rs.blocks, block)
 	return nil
 }
 

@@ -3,7 +3,6 @@ package chproto
 import (
 	"bufio"
 	"encoding/binary"
-	"sync"
 
 	"github.com/pierrec/lz4/v4"
 
@@ -25,50 +24,26 @@ const (
 	blockSize  = 1 << 20 // 1 MB
 )
 
-type writeBuffer struct {
-	buf []byte
-}
-
-var writeBufferPool = sync.Pool{
-	New: func() any {
-		return &writeBuffer{
-			buf: make([]byte, blockSize),
-		}
-	},
-}
-
-func getWriterBuffer() *writeBuffer {
-	return writeBufferPool.Get().(*writeBuffer)
-}
-
-func putWriterBuffer(db *writeBuffer) {
-	writeBufferPool.Put(db)
-}
-
 //------------------------------------------------------------------------------
 
 type lz4Writer struct {
 	wr *bufio.Writer
 
-	data *writeBuffer
-	pos  int
+	data  []byte
+	pos   int
+	zdata []byte
 }
 
 func newLZ4Writer(w *bufio.Writer) *lz4Writer {
 	return &lz4Writer{
-		wr: w,
+		wr:   w,
+		data: make([]byte, blockSize),
 	}
-}
-
-func (w *lz4Writer) Init() {
-	w.data = getWriterBuffer()
-	w.pos = 0
 }
 
 func (w *lz4Writer) Close() error {
 	err := w.flush()
-	putWriterBuffer(w.data)
-	w.data = nil
+	w.pos = 0
 	return err
 }
 
@@ -77,7 +52,7 @@ func (w *lz4Writer) Flush() error {
 }
 
 func (w *lz4Writer) WriteByte(c byte) error {
-	w.data.buf[w.pos] = c
+	w.data[w.pos] = c
 	w.pos++
 	return w.checkFlush()
 }
@@ -89,7 +64,7 @@ func (w *lz4Writer) WriteString(s string) (int, error) {
 func (w *lz4Writer) Write(data []byte) (int, error) {
 	var written int
 	for len(data) > 0 {
-		n := copy(w.data.buf[w.pos:], data)
+		n := copy(w.data[w.pos:], data)
 		data = data[n:]
 		w.pos += n
 		if err := w.checkFlush(); err != nil {
@@ -101,7 +76,7 @@ func (w *lz4Writer) Write(data []byte) (int, error) {
 }
 
 func (w *lz4Writer) checkFlush() error {
-	if w.pos < len(w.data.buf) {
+	if w.pos < len(w.data) {
 		return nil
 	}
 	return w.flush()
@@ -113,23 +88,23 @@ func (w *lz4Writer) flush() error {
 	}
 
 	zlen := headerSize + lz4.CompressBlockBound(w.pos)
-	zdata := make([]byte, zlen)
+	w.zdata = grow(w.zdata, zlen)
 
-	compressedSize, err := compress(zdata[headerSize:], w.data.buf[:w.pos])
+	compressedSize, err := compress(w.zdata[headerSize:], w.data[:w.pos])
 	if err != nil {
 		return err
 	}
 	compressedSize += compressionHeaderSize
 
-	zdata[16] = lz4Compression
-	binary.LittleEndian.PutUint32(zdata[17:], uint32(compressedSize))
-	binary.LittleEndian.PutUint32(zdata[21:], uint32(w.pos))
+	w.zdata[16] = lz4Compression
+	binary.LittleEndian.PutUint32(w.zdata[17:], uint32(compressedSize))
+	binary.LittleEndian.PutUint32(w.zdata[21:], uint32(w.pos))
 
-	checkSum := cityhash102.CityHash128(zdata[16:], uint32(compressedSize))
-	binary.LittleEndian.PutUint64(zdata[0:], checkSum.Lower64())
-	binary.LittleEndian.PutUint64(zdata[8:], checkSum.Higher64())
+	checkSum := cityhash102.CityHash128(w.zdata[16:], uint32(compressedSize))
+	binary.LittleEndian.PutUint64(w.zdata[0:], checkSum.Lower64())
+	binary.LittleEndian.PutUint64(w.zdata[8:], checkSum.Higher64())
 
-	w.wr.Write(zdata[:checksumSize+compressedSize])
+	w.wr.Write(w.zdata[:checksumSize+compressedSize])
 	w.pos = 0
 
 	return nil
