@@ -36,10 +36,14 @@ func newBlockIter(db *DB, cn *chpool.Conn) *blockIter {
 
 func (it *blockIter) Close() error {
 	if it.cn != nil {
-		it.db.releaseConn(it.cn, it.stickyErr)
-		it.cn = nil
+		it.close()
 	}
 	return nil
+}
+
+func (it *blockIter) close() {
+	it.db.releaseConn(it.cn, it.stickyErr)
+	it.cn = nil
 }
 
 func (it *blockIter) Err() error {
@@ -47,16 +51,22 @@ func (it *blockIter) Err() error {
 }
 
 func (it *blockIter) Next(ctx context.Context, block *chschema.Block) bool {
-	if it.stickyErr != nil {
+	if it.cn == nil {
 		return false
 	}
 
 	ok, err := it.read(ctx, block)
 	if err != nil {
 		it.stickyErr = err
+		it.close()
 		return false
 	}
-	return ok
+
+	if !ok {
+		it.close()
+		return false
+	}
+	return true
 }
 
 func (it *blockIter) read(ctx context.Context, block *chschema.Block) (bool, error) {
