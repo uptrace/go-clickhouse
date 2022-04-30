@@ -5,6 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"reflect"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -305,12 +308,13 @@ func TestORM(t *testing.T) {
 		testORMSlice,
 		testORMColumnarStruct,
 		testORMInvalidEnumValue,
+		testORMInsertSelect,
 	}
 	for _, fn := range tests {
 		_, err := db.NewTruncateTable().Model((*Event)(nil)).Exec(ctx)
 		require.NoError(t, err)
 
-		t.Run("", func(t *testing.T) {
+		t.Run(funcName(fn), func(t *testing.T) {
 			fn(t, db)
 		})
 	}
@@ -491,6 +495,37 @@ func testORMInvalidEnumValue(t *testing.T, db *ch.DB) {
 	err = db.NewSelect().Model(dest).Scan(ctx)
 	require.NoError(t, err)
 	require.Equal(t, "invalid", dest.Kind)
+}
+
+func testORMInsertSelect(t *testing.T, db *ch.DB) {
+	ctx := context.Background()
+
+	for i := 0; i < 100; i++ {
+		src := &Event{
+			ID:        1,
+			Name:      "hello",
+			Count:     42,
+			Keys:      []string{"foo", "bar"},
+			Values:    [][]string{{}, {"hello", "world"}},
+			Kind:      "hello",
+			CreatedAt: time.Now(),
+		}
+		_, err := db.NewInsert().Model(src).Exec(ctx)
+		require.NoError(t, err)
+	}
+
+	var dest []Event
+	err := db.NewSelect().Model(&dest).Scan(ctx)
+	require.NoError(t, err)
+	require.Equal(t, 100, len(dest))
+}
+
+func funcName(x interface{}) string {
+	s := runtime.FuncForPC(reflect.ValueOf(x).Pointer()).Name()
+	if i := strings.LastIndexByte(s, '.'); i >= 0 {
+		return s[i+1:]
+	}
+	return s
 }
 
 func strptr(s string) *string {
