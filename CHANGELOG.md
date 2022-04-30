@@ -1,3 +1,13 @@
+## [0.2.6](https://github.com/uptrace/go-clickhouse/compare/v0.2.5...v0.2.6) (2022-04-30)
+
+
+### Features
+
+* add proper Rows implementation and some optimizations ([aca5cfe](https://github.com/uptrace/go-clickhouse/commit/aca5cfeb91514cf6dccb4ebc261755940b290449))
+* add support for DateTime64 ([1281505](https://github.com/uptrace/go-clickhouse/commit/1281505a77f39e0ff3203eddd969fded776e72f0))
+
+
+
 #### 0.2.6 (2022-03-29)
 
 # [](https://github.com/uptrace/go-clickhouse/compare/v0.2.4...v) (2022-03-29)

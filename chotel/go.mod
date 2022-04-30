@@ -9,9 +9,9 @@ replace github.com/uptrace/go-clickhouse/chdebug => ../chdebug
 exclude go.opentelemetry.io/proto/otlp v0.15.0
 
 require (
-	github.com/uptrace/go-clickhouse v0.2.5
-	go.opentelemetry.io/otel v1.6.1
-	go.opentelemetry.io/otel/trace v1.6.1
+	github.com/uptrace/go-clickhouse v0.2.6
+	go.opentelemetry.io/otel v1.7.0
+	go.opentelemetry.io/otel/trace v1.7.0
 )
 
 require (
@@ -20,5 +20,5 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
-	golang.org/x/exp v0.0.0-20220328175248-053ad81199eb // indirect
+	golang.org/x/exp v0.0.0-20220428152302-39d4317da171 // indirect
 )
