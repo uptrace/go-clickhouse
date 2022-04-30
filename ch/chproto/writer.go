@@ -10,7 +10,10 @@ import (
 	"github.com/uptrace/go-clickhouse/ch/internal"
 )
 
-const uuidLen = 16
+const (
+	uuidLen   = 16
+	secsInDay = 24 * 3600
+)
 
 type writer interface {
 	io.Writer
@@ -44,7 +47,6 @@ func (w *Writer) WithCompression(fn func() error) {
 		return
 	}
 
-	w.zw.Init()
 	w.wr = w.zw
 
 	w.err = fn()
@@ -85,7 +87,7 @@ func (w *Writer) Bool(flag bool) {
 	if flag {
 		num = 1
 	}
-	w.Uint8(num)
+	w.UInt8(num)
 }
 
 func (w *Writer) Uvarint(num uint64) {
@@ -93,47 +95,47 @@ func (w *Writer) Uvarint(num uint64) {
 	w.Write(w.buf[:n])
 }
 
-func (w *Writer) Uint8(num uint8) {
+func (w *Writer) UInt8(num uint8) {
 	w.writeByte(num)
 }
 
-func (w *Writer) Uint16(num uint16) {
+func (w *Writer) UInt16(num uint16) {
 	binary.LittleEndian.PutUint16(w.buf, num)
 	w.Write(w.buf[:2])
 }
 
-func (w *Writer) Uint32(num uint32) {
+func (w *Writer) UInt32(num uint32) {
 	binary.LittleEndian.PutUint32(w.buf, num)
 	w.Write(w.buf[:4])
 }
 
-func (w *Writer) Uint64(num uint64) {
+func (w *Writer) UInt64(num uint64) {
 	binary.LittleEndian.PutUint64(w.buf, num)
 	w.Write(w.buf[:8])
 }
 
 func (w *Writer) Int8(num int8) {
-	w.Uint8(uint8(num))
+	w.UInt8(uint8(num))
 }
 
 func (w *Writer) Int16(num int16) {
-	w.Uint16(uint16(num))
+	w.UInt16(uint16(num))
 }
 
 func (w *Writer) Int32(num int32) {
-	w.Uint32(uint32(num))
+	w.UInt32(uint32(num))
 }
 
 func (w *Writer) Int64(num int64) {
-	w.Uint64(uint64(num))
+	w.UInt64(uint64(num))
 }
 
 func (w *Writer) Float32(num float32) {
-	w.Uint32(math.Float32bits(num))
+	w.UInt32(math.Float32bits(num))
 }
 
 func (w *Writer) Float64(num float64) {
-	w.Uint64(math.Float64bits(num))
+	w.UInt64(math.Float64bits(num))
 }
 
 func (w *Writer) String(s string) {
@@ -172,13 +174,11 @@ func packUUID(b []byte) []byte {
 }
 
 func (w *Writer) DateTime(tm time.Time) {
-	w.Uint32(uint32(unixTime(tm)))
+	w.UInt32(uint32(unixTime(tm)))
 }
 
-const secsInDay = 24 * 3600
-
 func (w *Writer) Date(tm time.Time) {
-	w.Uint16(uint16(unixTime(tm) / secsInDay))
+	w.UInt16(uint16(unixTime(tm) / secsInDay))
 }
 
 func unixTime(tm time.Time) int64 {

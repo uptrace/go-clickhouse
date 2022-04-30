@@ -496,7 +496,7 @@ func (q *SelectQuery) scan(ctx context.Context, columnar bool, values ...any) er
 	query := internal.String(queryBytes)
 
 	ctx, evt := q.db.beforeQuery(ctx, q, query, nil, model)
-	res, err := q.db.query(ctx, model, query)
+	res, err := q.query(ctx, model, query)
 	q.db.afterQuery(ctx, evt, res, err)
 	if err != nil {
 		return err

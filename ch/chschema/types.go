@@ -94,11 +94,11 @@ var kindToColumn = [...]NewColumnFunc{
 	reflect.Int16:         NewInt16Column,
 	reflect.Int32:         NewInt32Column,
 	reflect.Int64:         NewInt64Column,
-	reflect.Uint:          NewUint64Column,
-	reflect.Uint8:         NewUint8Column,
-	reflect.Uint16:        NewUint16Column,
-	reflect.Uint32:        NewUint32Column,
-	reflect.Uint64:        NewUint64Column,
+	reflect.Uint:          NewUInt64Column,
+	reflect.Uint8:         NewUInt8Column,
+	reflect.Uint16:        NewUInt16Column,
+	reflect.Uint32:        NewUInt32Column,
+	reflect.Uint64:        NewUInt64Column,
 	reflect.Uintptr:       nil,
 	reflect.Float32:       NewFloat32Column,
 	reflect.Float64:       NewFloat64Column,
@@ -171,6 +171,12 @@ func ColumnFactory(typ reflect.Type, chType string) NewColumnFunc {
 			if elem.Elem().Kind() == reflect.Struct {
 				return NewJSONColumn
 			}
+		case reflect.Int64:
+			return NewInt64ArrayColumn
+		case reflect.Uint64:
+			return NewUint64ArrayColumn
+		case reflect.Float64:
+			return NewFloat64ArrayColumn
 		case reflect.Uint8:
 			if chType == chtype.String {
 				return NewBytesColumn
@@ -183,7 +189,7 @@ func ColumnFactory(typ reflect.Type, chType string) NewColumnFunc {
 			}
 		}
 
-		return NewArrayColumn
+		return NewGenericArrayColumn
 	case reflect.Array:
 		if isUUID(typ) {
 			return NewUUIDColumn
@@ -196,7 +202,7 @@ func ColumnFactory(typ reflect.Type, chType string) NewColumnFunc {
 	case chtype.DateTime:
 		switch typ {
 		case uint32Type:
-			return NewUint32Column
+			return NewUInt32Column
 		case int64Type:
 			return NewInt64TimeColumn
 		default:
@@ -227,13 +233,13 @@ func columnFromCHType(chType string) NewColumnFunc {
 	case chtype.Int64:
 		return NewInt64Column
 	case chtype.UInt8:
-		return NewUint8Column
+		return NewUInt8Column
 	case chtype.UInt16:
-		return NewUint16Column
+		return NewUInt16Column
 	case chtype.UInt32:
-		return NewUint32Column
+		return NewUInt32Column
 	case chtype.UInt64:
-		return NewUint64Column
+		return NewUInt64Column
 	case chtype.Float32:
 		return NewFloat32Column
 	case chtype.Float64:

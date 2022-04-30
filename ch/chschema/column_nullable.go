@@ -7,7 +7,7 @@ import (
 )
 
 type NullableColumn struct {
-	Nulls    Uint8Column
+	Nulls    UInt8Column
 	Values   Columnar
 	nullable reflect.Value // reflect.Slice
 }
@@ -44,7 +44,7 @@ func (c *NullableColumn) Value() any {
 	return c.nullable.Interface()
 }
 
-func (c *NullableColumn) Nullable(nulls Uint8Column) any {
+func (c *NullableColumn) Nullable(nulls UInt8Column) any {
 	panic("not implemented")
 }
 

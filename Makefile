@@ -20,3 +20,6 @@ go_mod_tidy:
 fmt:
 	gofmt -w -s ./
 	goimports -w  -local github.com/uptrace/go-clickhouse ./
+
+codegen:
+	go run ./ch/internal/codegen/ -dir=ch/chschema
