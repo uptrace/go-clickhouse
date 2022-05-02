@@ -1,3 +1,12 @@
+## [0.2.7](https://github.com/uptrace/go-clickhouse/compare/v0.2.6...v0.2.7) (2022-05-02)
+
+
+### Features
+
+* allow disabling compression for benchmarks ([a0d867b](https://github.com/uptrace/go-clickhouse/commit/a0d867b5f4478ac4879e73e1c8bb7cf0a8565142))
+
+
+
 ## [0.2.6](https://github.com/uptrace/go-clickhouse/compare/v0.2.5...v0.2.6) (2022-04-30)
 
 
