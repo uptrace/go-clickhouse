@@ -79,7 +79,7 @@ func (it *blockIter) read(ctx context.Context, block *chschema.Block) (bool, err
 
 		switch packet {
 		case chproto.ServerData:
-			if err := readBlock(rd, block); err != nil {
+			if err := it.db.readBlock(rd, block); err != nil {
 				return false, err
 			}
 			return true, nil
@@ -262,7 +262,7 @@ func (db *DB) writeQuery(wr *chproto.Writer, query string) {
 	db.writeSettings(wr)
 
 	wr.Uvarint(2)
-	wr.Uvarint(chproto.CompressionEnabled)
+	wr.Bool(db.cfg.Compression)
 	wr.String(query)
 }
 
@@ -290,14 +290,14 @@ func (db *DB) writeSettings(wr *chproto.Writer) {
 
 var emptyBlock chschema.Block
 
-func writeBlock(ctx context.Context, wr *chproto.Writer, block *chschema.Block) {
+func (db *DB) writeBlock(ctx context.Context, wr *chproto.Writer, block *chschema.Block) {
 	if block == nil {
 		block = &emptyBlock
 	}
 	wr.Uvarint(chproto.ClientData)
 	wr.String("")
 
-	wr.WithCompression(func() error {
+	wr.WithCompression(db.cfg.Compression, func() error {
 		writeBlockInfo(wr)
 		return block.WriteTo(wr)
 	})
@@ -313,7 +313,7 @@ func writeBlockInfo(wr *chproto.Writer) {
 	wr.Uvarint(0)
 }
 
-func readSampleBlock(rd *chproto.Reader) (*chschema.Block, error) {
+func (db *DB) readSampleBlock(rd *chproto.Reader) (*chschema.Block, error) {
 	for {
 		packet, err := rd.Uvarint()
 		if err != nil {
@@ -323,7 +323,7 @@ func readSampleBlock(rd *chproto.Reader) (*chschema.Block, error) {
 		switch packet {
 		case chproto.ServerData:
 			block := new(chschema.Block)
-			if err := readBlock(rd, block); err != nil {
+			if err := db.readBlock(rd, block); err != nil {
 				return nil, err
 			}
 			return block, nil
@@ -339,7 +339,7 @@ func readSampleBlock(rd *chproto.Reader) (*chschema.Block, error) {
 	}
 }
 
-func readDataBlocks(rd *chproto.Reader) (*result, error) {
+func (db *DB) readDataBlocks(rd *chproto.Reader) (*result, error) {
 	var res *result
 	block := new(chschema.Block)
 	for {
@@ -350,7 +350,7 @@ func readDataBlocks(rd *chproto.Reader) (*result, error) {
 
 		switch packet {
 		case chproto.ServerData:
-			if err := readBlock(rd, block); err != nil {
+			if err := db.readBlock(rd, block); err != nil {
 				return nil, err
 			}
 
@@ -412,12 +412,12 @@ func readPacket(rd *chproto.Reader) (*result, error) {
 	}
 }
 
-func readBlock(rd *chproto.Reader, block *chschema.Block) error {
+func (db *DB) readBlock(rd *chproto.Reader, block *chschema.Block) error {
 	if _, err := rd.String(); err != nil {
 		return err
 	}
 
-	return rd.WithCompression(func() error {
+	return rd.WithCompression(db.cfg.Compression, func() error {
 		if err := readBlockInfo(rd); err != nil {
 			return err
 		}
