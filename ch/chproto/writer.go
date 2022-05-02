@@ -42,19 +42,23 @@ func NewWriter(w io.Writer) *Writer {
 	}
 }
 
-func (w *Writer) WithCompression(fn func() error) {
+func (w *Writer) WithCompression(enabled bool, fn func() error) {
 	if w.err != nil {
 		return
 	}
 
-	w.wr = w.zw
+	if enabled {
+		w.wr = w.zw
+	}
 
 	w.err = fn()
 
-	if err := w.zw.Close(); err != nil && w.err == nil {
-		w.err = err
+	if enabled {
+		if err := w.zw.Close(); err != nil && w.err == nil {
+			w.err = err
+		}
+		w.wr = w.bw
 	}
-	w.wr = w.bw
 }
 
 func (w *Writer) Flush() (err error) {

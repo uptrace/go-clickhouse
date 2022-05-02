@@ -22,6 +22,8 @@ const (
 type Config struct {
 	chpool.Config
 
+	Compression bool
+
 	Network  string
 	Addr     string
 	User     string
@@ -51,6 +53,15 @@ func defaultConfig() *Config {
 	var cfg *Config
 	poolSize := 2 * runtime.GOMAXPROCS(0)
 	cfg = &Config{
+		Config: chpool.Config{
+			PoolSize:        poolSize,
+			PoolTimeout:     30 * time.Second,
+			MaxIdleConns:    poolSize,
+			ConnMaxIdleTime: 30 * time.Minute,
+		},
+
+		Compression: true,
+
 		Network:  "tcp",
 		Addr:     "localhost:9000",
 		User:     "default",
@@ -63,13 +74,6 @@ func defaultConfig() *Config {
 		MaxRetries:      2,
 		MinRetryBackoff: 500 * time.Millisecond,
 		MaxRetryBackoff: time.Second,
-
-		Config: chpool.Config{
-			PoolSize:        poolSize,
-			PoolTimeout:     30 * time.Second,
-			MaxIdleConns:    poolSize,
-			ConnMaxIdleTime: 30 * time.Minute,
-		},
 	}
 	return cfg
 }
@@ -79,6 +83,13 @@ type Option func(db *DB)
 func WithDiscardUnknownColumns() Option {
 	return func(db *DB) {
 		db.flags.Set(discardUnknownColumnsFlag)
+	}
+}
+
+// WithCompression enables/disables LZ4 compression.
+func WithCompression(enabled bool) Option {
+	return func(db *DB) {
+		db.cfg.Compression = enabled
 	}
 }
 

@@ -36,15 +36,18 @@ func NewReader(r io.Reader) *Reader {
 	}
 }
 
-func (r *Reader) WithCompression(fn func() error) error {
-	r.zr.Init()
-	r.rd = r.zr
+func (r *Reader) WithCompression(enabled bool, fn func() error) error {
+	if enabled {
+		r.rd = r.zr
+	}
 
 	firstErr := fn()
 
-	r.rd = r.br
-	if err := r.zr.Release(); err != nil && firstErr == nil {
-		firstErr = err
+	if enabled {
+		r.rd = r.br
+		if err := r.zr.Release(); err != nil && firstErr == nil {
+			firstErr = err
+		}
 	}
 
 	return firstErr

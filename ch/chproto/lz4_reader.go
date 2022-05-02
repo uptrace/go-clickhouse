@@ -30,8 +30,6 @@ func newLZ4Reader(r *bufio.Reader) *lz4Reader {
 	}
 }
 
-func (r *lz4Reader) Init() {}
-
 func (r *lz4Reader) Release() error {
 	var err error
 	if r.Buffered() > 0 {
