@@ -12,8 +12,8 @@ exclude go.opentelemetry.io/proto/otlp v0.15.0
 
 require (
 	github.com/brianvoe/gofakeit/v5 v5.11.2
-	github.com/uptrace/go-clickhouse v0.2.6
-	github.com/uptrace/go-clickhouse/chotel v0.2.6
+	github.com/uptrace/go-clickhouse v0.2.7
+	github.com/uptrace/go-clickhouse/chotel v0.2.7
 	github.com/uptrace/opentelemetry-go-extra/otelplay v0.1.12
 	go.opentelemetry.io/otel v1.7.0
 )
