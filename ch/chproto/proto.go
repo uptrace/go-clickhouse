@@ -11,11 +11,6 @@ const (
 )
 
 const (
-	CompressionDisabled = 0
-	CompressionEnabled  = 1
-)
-
-const (
 	ServerHello        = 0
 	ServerData         = 1
 	ServerException    = 2
