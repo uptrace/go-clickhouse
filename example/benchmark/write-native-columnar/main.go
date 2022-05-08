@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/go-clickhouse/chdebug"
 )
 
 type Model struct {
@@ -35,11 +34,10 @@ func benchmark(ctx context.Context, db *ch.DB) error {
 func main() {
 	ctx := context.Background()
 
-	db := ch.Connect(ch.WithDatabase("test"))
-	db.AddQueryHook(chdebug.NewQueryHook(
-		chdebug.WithEnabled(false),
-		chdebug.FromEnv(""),
-	))
+	db := ch.Connect(
+		ch.WithDatabase("test"),
+		ch.WithCompression(false),
+	)
 
 	if err := db.ResetModel(ctx, (*Model)(nil)); err != nil {
 		panic(err)
