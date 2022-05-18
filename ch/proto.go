@@ -279,7 +279,6 @@ func (db *DB) writeQuery(ctx context.Context, cn *chpool.Conn, wr *chproto.Write
 			wr.WriteByte(1)
 			{
 				v := spanCtx.TraceID()
-				fmt.Println(v.String())
 				wr.UUID(v[:])
 			}
 			{
