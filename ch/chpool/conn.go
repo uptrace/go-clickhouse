@@ -45,6 +45,10 @@ func (cn *Conn) SetUsedAt(tm time.Time) {
 	atomic.StoreInt64(&cn.usedAt, tm.Unix())
 }
 
+func (cn *Conn) LocalAddr() net.Addr {
+	return cn.netConn.LocalAddr()
+}
+
 func (cn *Conn) RemoteAddr() net.Addr {
 	return cn.netConn.RemoteAddr()
 }

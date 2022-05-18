@@ -21,14 +21,20 @@ func (srv *ServerInfo) ReadFrom(rd *Reader) (err error) {
 		return err
 	}
 
-	if _, err := rd.String(); err != nil { // timezone
-		return err
+	if srv.Revision >= DBMS_MIN_REVISION_WITH_SERVER_TIMEZONE {
+		if _, err := rd.String(); err != nil { // timezone
+			return err
+		}
 	}
-	if _, err := rd.String(); err != nil { // display name
-		return err
+	if srv.Revision >= DBMS_MIN_REVISION_WITH_SERVER_DISPLAY_NAME {
+		if _, err := rd.String(); err != nil { // display name
+			return err
+		}
 	}
-	if _, err := rd.Uvarint(); err != nil { // server version patch
-		return err
+	if srv.Revision >= DBMS_MIN_REVISION_WITH_VERSION_PATCH {
+		if _, err := rd.Uvarint(); err != nil { // server version patch
+			return err
+		}
 	}
 
 	return nil

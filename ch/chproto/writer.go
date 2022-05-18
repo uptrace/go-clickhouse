@@ -79,7 +79,7 @@ func (w *Writer) Write(b []byte) {
 	w.err = err
 }
 
-func (w *Writer) writeByte(c byte) {
+func (w *Writer) WriteByte(c byte) {
 	if w.err != nil {
 		return
 	}
@@ -100,7 +100,7 @@ func (w *Writer) Uvarint(num uint64) {
 }
 
 func (w *Writer) UInt8(num uint8) {
-	w.writeByte(num)
+	w.WriteByte(num)
 }
 
 func (w *Writer) UInt16(num uint16) {
