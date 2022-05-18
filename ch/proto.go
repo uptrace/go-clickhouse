@@ -10,14 +10,19 @@ import (
 	"github.com/uptrace/go-clickhouse/ch/chpool"
 	"github.com/uptrace/go-clickhouse/ch/chproto"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
 	clientName     = "go-clickhouse"
-	chVersionMajor = 19
-	chVersionMinor = 17
-	chVersionPatch = 5
-	chRevision     = 54428
+	chVersionMajor = 1
+	chVersionMinor = 1
+	chProtoVersion = chproto.DBMS_TCP_PROTOCOL_VERSION
+)
+
+var (
+	osUser      = os.Getenv("USER")
+	hostname, _ = os.Hostname()
 )
 
 type blockIter struct {
@@ -79,14 +84,14 @@ func (it *blockIter) read(ctx context.Context, block *chschema.Block) (bool, err
 
 		switch packet {
 		case chproto.ServerData:
-			if err := it.db.readBlock(rd, block); err != nil {
+			if err := it.db.readBlock(rd, block, true); err != nil {
 				return false, err
 			}
 			return true, nil
 		case chproto.ServerException:
 			return false, readException(rd)
 		case chproto.ServerProgress:
-			if err := readProgress(rd); err != nil {
+			if err := readProgress(it.cn, rd); err != nil {
 				return false, err
 			}
 		case chproto.ServerProfileInfo:
@@ -95,6 +100,11 @@ func (it *blockIter) read(ctx context.Context, block *chschema.Block) (bool, err
 			}
 		case chproto.ServerTableColumns:
 			if err := readServerTableColumns(rd); err != nil {
+				return false, err
+			}
+		case chproto.ServerProfileEvents:
+			block := new(chschema.Block)
+			if err := it.db.readBlock(rd, block, false); err != nil {
 				return false, err
 			}
 		case chproto.ServerEndOfStream:
@@ -107,7 +117,7 @@ func (it *blockIter) read(ctx context.Context, block *chschema.Block) (bool, err
 
 func (db *DB) hello(ctx context.Context, cn *chpool.Conn) error {
 	err := cn.WithWriter(ctx, db.cfg.WriteTimeout, func(wr *chproto.Writer) {
-		wr.Uvarint(chproto.ClientHello)
+		wr.WriteByte(chproto.ClientHello)
 		writeClientInfo(wr)
 
 		wr.String(db.cfg.Database)
@@ -138,7 +148,7 @@ func writeClientInfo(wr *chproto.Writer) {
 	wr.String(clientName)
 	wr.Uvarint(chVersionMajor)
 	wr.Uvarint(chVersionMinor)
-	wr.Uvarint(chRevision)
+	wr.Uvarint(chProtoVersion)
 }
 
 func readException(rd *chproto.Reader) (err error) {
@@ -194,7 +204,7 @@ func readProfileInfo(rd *chproto.Reader) error {
 	return nil
 }
 
-func readProgress(rd *chproto.Reader) error {
+func readProgress(cn *chpool.Conn, rd *chproto.Reader) error {
 	if _, err := rd.Uvarint(); err != nil {
 		return err
 	}
@@ -204,17 +214,19 @@ func readProgress(rd *chproto.Reader) error {
 	if _, err := rd.Uvarint(); err != nil {
 		return err
 	}
-	if _, err := rd.Uvarint(); err != nil {
-		return err
-	}
-	if _, err := rd.Uvarint(); err != nil {
-		return err
+	if cn.ServerInfo.Revision >= chproto.DBMS_MIN_REVISION_WITH_CLIENT_WRITE_INFO {
+		if _, err := rd.Uvarint(); err != nil {
+			return err
+		}
+		if _, err := rd.Uvarint(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func writePing(wr *chproto.Writer) {
-	wr.Uvarint(chproto.ClientPing)
+	wr.WriteByte(chproto.ClientPing)
 }
 
 func readPong(rd *chproto.Reader) error {
@@ -237,38 +249,82 @@ func readPong(rd *chproto.Reader) error {
 	}
 }
 
-var hostname string
-
-func (db *DB) writeQuery(wr *chproto.Writer, query string) {
-	if hostname == "" {
-		hostname, _ = os.Hostname()
-	}
-
-	wr.Uvarint(chproto.ClientQuery)
-	wr.String("")
+func (db *DB) writeQuery(ctx context.Context, cn *chpool.Conn, wr *chproto.Writer, query string) {
+	wr.WriteByte(chproto.ClientQuery)
+	wr.String("") // query id
 
 	// TODO: use QuerySecondary - https://github.com/ClickHouse/ClickHouse/blob/master/dbms/src/Client/Connection.cpp#L388-L404
-	wr.Uvarint(chproto.QueryInitial)
+	wr.WriteByte(chproto.QueryInitial)
 	wr.String("") // initial user
 	wr.String("") // initial query id
-	wr.String("[::ffff:127.0.0.1]:0")
-	wr.Uvarint(1) // iface type TCP
-	wr.String(hostname)
+	wr.String(cn.LocalAddr().String())
+	if cn.ServerInfo.Revision >= chproto.DBMS_MIN_PROTOCOL_VERSION_WITH_INITIAL_QUERY_START_TIME {
+		wr.Int64(0) // initial_query_start_time_microseconds
+	}
+	wr.WriteByte(1) // interface [tcp - 1, http - 2]
+	wr.String(osUser)
 	wr.String(hostname)
 	writeClientInfo(wr)
-	wr.String("")              // quota key
-	wr.Uvarint(chVersionPatch) // client version patch
+	if cn.ServerInfo.Revision >= chproto.DBMS_MIN_REVISION_WITH_QUOTA_KEY_IN_CLIENT_INFO {
+		wr.String("") // quota key
+	}
+	if cn.ServerInfo.Revision >= chproto.DBMS_MIN_PROTOCOL_VERSION_WITH_DISTRIBUTED_DEPTH {
+		wr.Uvarint(0)
+	}
+	if cn.ServerInfo.Revision >= chproto.DBMS_MIN_REVISION_WITH_VERSION_PATCH {
+		wr.Uvarint(0) // client version patch
+	}
+	if cn.ServerInfo.Revision >= chproto.DBMS_MIN_REVISION_WITH_OPENTELEMETRY {
+		if spanCtx := trace.SpanContextFromContext(ctx); spanCtx.IsValid() {
+			wr.WriteByte(1)
+			{
+				v := spanCtx.TraceID()
+				fmt.Println(v.String())
+				wr.UUID(v[:])
+			}
+			{
+				v := spanCtx.SpanID()
+				wr.Write(reverseBytes(v[:]))
+			}
+			wr.String(spanCtx.TraceState().String())
+			wr.WriteByte(byte(spanCtx.TraceFlags()))
+		} else {
+			wr.WriteByte(0)
+		}
+	}
+	if cn.ServerInfo.Revision >= chproto.DBMS_MIN_REVISION_WITH_PARALLEL_REPLICAS {
+		wr.Uvarint(0) // collaborate_with_initiator
+		wr.Uvarint(0) // count_participating_replicas
+		wr.Uvarint(0) // number_of_current_replica
+	}
 
-	db.writeSettings(wr)
+	db.writeSettings(cn, wr)
 
-	wr.Uvarint(2)
+	if cn.ServerInfo.Revision >= chproto.DBMS_MIN_REVISION_WITH_INTERSERVER_SECRET {
+		wr.String("")
+	}
+	wr.Uvarint(2) // state complete
 	wr.Bool(db.cfg.Compression)
 	wr.String(query)
 }
 
-func (db *DB) writeSettings(wr *chproto.Writer) {
+func reverseBytes(b []byte) []byte {
+	for i, j := 0, len(b)-1; i < j; i, j = i+1, j-1 {
+		b[i], b[j] = b[j], b[i]
+	}
+	return b
+}
+
+func (db *DB) writeSettings(cn *chpool.Conn, wr *chproto.Writer) {
 	for key, value := range db.cfg.QuerySettings {
 		wr.String(key)
+
+		if cn.ServerInfo.Revision > chproto.DBMS_MIN_REVISION_WITH_SETTINGS_SERIALIZED_AS_STRINGS {
+			wr.Bool(true) // is_important
+			wr.String(fmt.Sprint(value))
+			continue
+		}
+
 		switch value := value.(type) {
 		case string:
 			wr.String(value)
@@ -283,9 +339,10 @@ func (db *DB) writeSettings(wr *chproto.Writer) {
 		default:
 			panic(fmt.Errorf("%s setting has unsupported type: %T", key, value))
 		}
+
 	}
 
-	wr.String("")
+	wr.String("") // end of settings
 }
 
 var emptyBlock chschema.Block
@@ -294,7 +351,7 @@ func (db *DB) writeBlock(ctx context.Context, wr *chproto.Writer, block *chschem
 	if block == nil {
 		block = &emptyBlock
 	}
-	wr.Uvarint(chproto.ClientData)
+	wr.WriteByte(chproto.ClientData)
 	wr.String("")
 
 	wr.WithCompression(db.cfg.Compression, func() error {
@@ -323,7 +380,7 @@ func (db *DB) readSampleBlock(rd *chproto.Reader) (*chschema.Block, error) {
 		switch packet {
 		case chproto.ServerData:
 			block := new(chschema.Block)
-			if err := db.readBlock(rd, block); err != nil {
+			if err := db.readBlock(rd, block, true); err != nil {
 				return nil, err
 			}
 			return block, nil
@@ -339,7 +396,7 @@ func (db *DB) readSampleBlock(rd *chproto.Reader) (*chschema.Block, error) {
 	}
 }
 
-func (db *DB) readDataBlocks(rd *chproto.Reader) (*result, error) {
+func (db *DB) readDataBlocks(cn *chpool.Conn, rd *chproto.Reader) (*result, error) {
 	var res *result
 	block := new(chschema.Block)
 	for {
@@ -349,8 +406,8 @@ func (db *DB) readDataBlocks(rd *chproto.Reader) (*result, error) {
 		}
 
 		switch packet {
-		case chproto.ServerData:
-			if err := db.readBlock(rd, block); err != nil {
+		case chproto.ServerData, chproto.ServerTotals, chproto.ServerExtremes:
+			if err := db.readBlock(rd, block, true); err != nil {
 				return nil, err
 			}
 
@@ -361,7 +418,7 @@ func (db *DB) readDataBlocks(rd *chproto.Reader) (*result, error) {
 		case chproto.ServerException:
 			return nil, readException(rd)
 		case chproto.ServerProgress:
-			if err := readProgress(rd); err != nil {
+			if err := readProgress(cn, rd); err != nil {
 				return nil, err
 			}
 		case chproto.ServerProfileInfo:
@@ -372,6 +429,11 @@ func (db *DB) readDataBlocks(rd *chproto.Reader) (*result, error) {
 			if err := readServerTableColumns(rd); err != nil {
 				return nil, err
 			}
+		case chproto.ServerProfileEvents:
+			block := new(chschema.Block)
+			if err := db.readBlock(rd, block, false); err != nil {
+				return nil, err
+			}
 		case chproto.ServerEndOfStream:
 			return res, nil
 		default:
@@ -380,7 +442,7 @@ func (db *DB) readDataBlocks(rd *chproto.Reader) (*result, error) {
 	}
 }
 
-func readPacket(rd *chproto.Reader) (*result, error) {
+func readPacket(cn *chpool.Conn, rd *chproto.Reader) (*result, error) {
 	packet, err := rd.Uvarint()
 	if err != nil {
 		return nil, err
@@ -391,7 +453,7 @@ func readPacket(rd *chproto.Reader) (*result, error) {
 	case chproto.ServerException:
 		return nil, readException(rd)
 	case chproto.ServerProgress:
-		if err := readProgress(rd); err != nil {
+		if err := readProgress(cn, rd); err != nil {
 			return nil, err
 		}
 		return res, nil
@@ -412,12 +474,12 @@ func readPacket(rd *chproto.Reader) (*result, error) {
 	}
 }
 
-func (db *DB) readBlock(rd *chproto.Reader, block *chschema.Block) error {
+func (db *DB) readBlock(rd *chproto.Reader, block *chschema.Block, compressible bool) error {
 	if _, err := rd.String(); err != nil {
 		return err
 	}
 
-	return rd.WithCompression(db.cfg.Compression, func() error {
+	return rd.WithCompression(compressible && db.cfg.Compression, func() error {
 		if err := readBlockInfo(rd); err != nil {
 			return err
 		}
@@ -484,7 +546,7 @@ func readBlockInfo(rd *chproto.Reader) error {
 }
 
 func writeCancel(wr *chproto.Writer) {
-	wr.Uvarint(chproto.ClientCancel)
+	wr.WriteByte(chproto.ClientCancel)
 }
 
 func readServerTableColumns(rd *chproto.Reader) error {

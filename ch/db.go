@@ -253,14 +253,14 @@ func (db *DB) _exec(ctx context.Context, query string) (*result, error) {
 	var res *result
 	err := db.withConn(ctx, func(cn *chpool.Conn) error {
 		if err := cn.WithWriter(ctx, db.cfg.WriteTimeout, func(wr *chproto.Writer) {
-			db.writeQuery(wr, query)
+			db.writeQuery(ctx, cn, wr, query)
 			db.writeBlock(ctx, wr, nil)
 		}); err != nil {
 			return err
 		}
 		return cn.WithReader(ctx, db.cfg.ReadTimeout, func(rd *chproto.Reader) error {
 			var err error
-			res, err = db.readDataBlocks(rd)
+			res, err = db.readDataBlocks(cn, rd)
 			return err
 		})
 	})
@@ -323,7 +323,7 @@ func (db *DB) _query(ctx context.Context, query string) (*blockIter, error) {
 	}
 
 	if err := cn.WithWriter(ctx, db.cfg.WriteTimeout, func(wr *chproto.Writer) {
-		db.writeQuery(wr, query)
+		db.writeQuery(ctx, cn, wr, query)
 		db.writeBlock(ctx, wr, nil)
 	}); err != nil {
 		return nil, err
@@ -363,7 +363,7 @@ func (db *DB) _insert(
 	var res *result
 	err := db.withConn(ctx, func(cn *chpool.Conn) error {
 		if err := cn.WithWriter(ctx, db.cfg.WriteTimeout, func(wr *chproto.Writer) {
-			db.writeQuery(wr, query)
+			db.writeQuery(ctx, cn, wr, query)
 			db.writeBlock(ctx, wr, nil)
 		}); err != nil {
 			return err
@@ -385,7 +385,7 @@ func (db *DB) _insert(
 
 		return cn.WithReader(ctx, db.cfg.ReadTimeout, func(rd *chproto.Reader) error {
 			var err error
-			res, err = readPacket(rd)
+			res, err = readPacket(cn, rd)
 			if err != nil {
 				return err
 			}
