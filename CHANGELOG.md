@@ -1,3 +1,12 @@
+## [0.2.8](https://github.com/uptrace/go-clickhouse/compare/v0.2.7...v0.2.8) (2022-05-29)
+
+
+### Features
+
+* enable opentelemetry support in protocol ([fb79ac4](https://github.com/uptrace/go-clickhouse/commit/fb79ac4b753bbf6ea794acb1d86fd8d116cf539c))
+
+
+
 ## [0.2.7](https://github.com/uptrace/go-clickhouse/compare/v0.2.6...v0.2.7) (2022-05-02)
 
 

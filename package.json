@@ -1,6 +1,6 @@
 {
   "name": "goclickhouse",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "main": "index.js",
   "repository": "git@github.com:uptrace/go-clickhouse.git",
   "author": "Vladimir Mihailenco <vladimir.webdev@gmail.com>",
