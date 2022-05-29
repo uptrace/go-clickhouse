@@ -12,7 +12,7 @@ require (
 	github.com/stretchr/testify v1.7.1
 	github.com/uptrace/go-clickhouse/chdebug v0.2.7
 	go.opentelemetry.io/otel/trace v1.7.0
-	golang.org/x/exp v0.0.0-20220516143420-24438e51023a
+	golang.org/x/exp v0.0.0-20220518171630-0b5c67f07fdf
 )
 
 require (

@@ -14,6 +14,5 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
 	go.opentelemetry.io/otel v1.7.0 // indirect
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect
-	golang.org/x/exp v0.0.0-20220516143420-24438e51023a // indirect
-	golang.org/x/sys v0.0.0-20220517195934-5e4e11fc645e // indirect
+	golang.org/x/exp v0.0.0-20220518171630-0b5c67f07fdf // indirect
 )
