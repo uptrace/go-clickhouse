@@ -1,8 +1,10 @@
 # Example for go-clickhouse OpenTelemetry instrumentation
 
-See
-[Performance and errors monitoring](https://clickhouse.uptrace.dev/guide/clickhouse-monitoring-performance.html)
-for details.
+To run this example, you need to create `test` ClickHouse database:
+
+```shell
+clickhouse-client -q "CREATE DATABASE test"
+```
 
 You can run this example with different OpenTelemetry exporters by providing environment variables.
 
@@ -23,6 +25,10 @@ OTEL_EXPORTER_JAEGER_ENDPOINT=http://localhost:14268/api/traces go run .
 ```shell
 UPTRACE_DSN="https://<token>@uptrace.dev/<project_id>" go run .
 ```
+
+See
+[Performance and errors monitoring](https://clickhouse.uptrace.dev/guide/clickhouse-monitoring-performance.html)
+for details.
 
 ## Links
 
