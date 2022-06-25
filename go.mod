@@ -9,7 +9,7 @@ require (
 	github.com/codemodus/kace v0.5.1
 	github.com/jinzhu/inflection v1.0.0
 	github.com/pierrec/lz4/v4 v4.1.14
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/testify v1.7.3
 	github.com/uptrace/go-clickhouse/chdebug v0.2.8
 	go.opentelemetry.io/otel/trace v1.7.0
 	golang.org/x/exp v0.0.0-20220518171630-0b5c67f07fdf
