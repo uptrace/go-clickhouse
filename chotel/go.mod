@@ -19,6 +19,6 @@ require (
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/pierrec/lz4/v4 v4.1.14 // indirect
-	golang.org/x/exp v0.0.0-20220518171630-0b5c67f07fdf // indirect
+	github.com/pierrec/lz4/v4 v4.1.15 // indirect
+	golang.org/x/exp v0.0.0-20220613132600-b0d781184e0d // indirect
 )
