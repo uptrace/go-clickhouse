@@ -145,40 +145,47 @@ func (m *Migrator) Migrate(ctx context.Context, opts ...MigrationOption) (*Migra
 	if err != nil {
 		return nil, err
 	}
+
+	// Get the unapplied migrations we will range over and apply
 	migrations = migrations.Unapplied()
-
-	group := new(MigrationGroup)
-	if len(group.Migrations) == 0 {
-		return group, nil
+	if len(migrations) == 0 {
+		return &MigrationGroup{}, nil
 	}
-	group.ID = lastGroupID + 1
 
-	for i := range group.Migrations {
-		migration := &group.Migrations[i]
-		migration.GroupID = group.ID
+	// Create empty group to track applied migrations
+	applied := new(MigrationGroup)
+	applied.ID = lastGroupID + 1
+
+	for i := range migrations {
+		migration := &migrations[i]
+		migration.GroupID = applied.ID
 
 		if !m.markAppliedOnSuccess {
 			if err := m.MarkApplied(ctx, migration); err != nil {
-				return group, err
+				return applied, err
 			}
-		}
 
-		group.Migrations = migrations[:i+1]
+			// Add to the group before upping the migration when always marking applied
+			applied.Migrations = append(applied.Migrations, *migration)
+		}
 
 		if !cfg.nop && migration.Up != nil {
 			if err := migration.Up(ctx, m.db); err != nil {
-				return group, err
+				return applied, err
 			}
 		}
 
 		if m.markAppliedOnSuccess {
 			if err := m.MarkApplied(ctx, migration); err != nil {
-				return group, err
+				return applied, err
 			}
+
+			// Add to the group after upping the migration when marking applied on success
+			applied.Migrations = append(applied.Migrations, *migration)
 		}
 	}
 
-	return group, nil
+	return applied, nil
 }
 
 func (m *Migrator) Rollback(ctx context.Context, opts ...MigrationOption) (*MigrationGroup, error) {
@@ -200,25 +207,35 @@ func (m *Migrator) Rollback(ctx context.Context, opts ...MigrationOption) (*Migr
 
 	lastGroup := migrations.LastGroup()
 
+	// Create empty group to track unapplied migrations
+	unapplied := new(MigrationGroup)
+	unapplied.ID = lastGroup.ID
+
 	for i := len(lastGroup.Migrations) - 1; i >= 0; i-- {
 		migration := &lastGroup.Migrations[i]
 
 		if !m.markAppliedOnSuccess {
 			if err := m.MarkUnapplied(ctx, migration); err != nil {
-				return lastGroup, err
+				return unapplied, err
 			}
+
+			// Add to the group before downing the migration when always marking unapplied
+			unapplied.Migrations = append(unapplied.Migrations, *migration)
 		}
 
 		if !cfg.nop && migration.Down != nil {
 			if err := migration.Down(ctx, m.db); err != nil {
-				return lastGroup, err
+				return unapplied, err
 			}
 		}
 
 		if m.markAppliedOnSuccess {
 			if err := m.MarkUnapplied(ctx, migration); err != nil {
-				return lastGroup, err
+				return unapplied, err
 			}
+
+			// Add to the group after downing the migration when marking unapplied on success
+			unapplied.Migrations = append(unapplied.Migrations, *migration)
 		}
 	}
 
