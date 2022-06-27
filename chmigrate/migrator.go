@@ -29,9 +29,9 @@ func WithLocksTableName(table string) MigratorOption {
 
 // WithMarkAppliedOnSuccess sets the migrator to only mark migrations as applied/unapplied
 // when their up/down is successful
-func WithMarkAppliedOnSuccess() MigratorOption {
+func WithMarkAppliedOnSuccess(enabled bool) MigratorOption {
 	return func(m *Migrator) {
-		m.markAppliedOnSuccess = true
+		m.markAppliedOnSuccess = enabled
 	}
 }
 
@@ -145,10 +145,9 @@ func (m *Migrator) Migrate(ctx context.Context, opts ...MigrationOption) (*Migra
 	if err != nil {
 		return nil, err
 	}
+	migrations = migrations.Unapplied()
 
-	group := &MigrationGroup{
-		Migrations: migrations.Unapplied(),
-	}
+	group := new(MigrationGroup)
 	if len(group.Migrations) == 0 {
 		return group, nil
 	}
@@ -163,6 +162,8 @@ func (m *Migrator) Migrate(ctx context.Context, opts ...MigrationOption) (*Migra
 				return group, err
 			}
 		}
+
+		group.Migrations = migrations[:i+1]
 
 		if !cfg.nop && migration.Up != nil {
 			if err := migration.Up(ctx, m.db); err != nil {
