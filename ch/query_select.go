@@ -52,7 +52,7 @@ func (q *SelectQuery) Err(err error) *SelectQuery {
 	return q
 }
 
-func (q *SelectQuery) Apply(fn func(*SelectQuery) *SelectQuery) *SelectQuery {
+func (q *SelectQuery) WithQuery(fn func(*SelectQuery) *SelectQuery) *SelectQuery {
 	return fn(q)
 }
 

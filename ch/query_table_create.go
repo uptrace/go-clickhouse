@@ -33,6 +33,10 @@ func (q *CreateTableQuery) Model(model any) *CreateTableQuery {
 	return q
 }
 
+func (q *CreateTableQuery) WithQuery(fn func(*CreateTableQuery) *CreateTableQuery) *CreateTableQuery {
+	return fn(q)
+}
+
 // ------------------------------------------------------------------------------
 
 func (q *CreateTableQuery) Table(tables ...string) *CreateTableQuery {

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/fs"
 	"sort"
 	"strings"
@@ -14,8 +15,6 @@ import (
 )
 
 type Migration struct {
-	ch.CHModel `ch:"engine:CollapsingMergeTree(sign)"`
-
 	Name       string `ch:",pk"`
 	Comment    string `ch:"-"`
 	GroupID    int64
@@ -42,45 +41,47 @@ func NewSQLMigrationFunc(fsys fs.FS, name string) MigrationFunc {
 		if err != nil {
 			return err
 		}
+		return Exec(ctx, db, f)
+	}
+}
 
-		scanner := bufio.NewScanner(f)
-		var queries []string
+func Exec(ctx context.Context, db *ch.DB, f io.Reader) error {
+	scanner := bufio.NewScanner(f)
+	var queries []string
 
-		var query []byte
-		for scanner.Scan() {
-			b := scanner.Bytes()
+	var query []byte
+	for scanner.Scan() {
+		b := scanner.Bytes()
 
-			const prefix = "--migration:"
-			if bytes.HasPrefix(b, []byte(prefix)) {
-				b = b[len(prefix):]
-				if bytes.Equal(b, []byte("split")) {
-					queries = append(queries, string(query))
-					query = query[:0]
-					continue
-				}
-				return fmt.Errorf("ch: unknown directive: %q", b)
+		const prefix = "--migration:"
+		if bytes.HasPrefix(b, []byte(prefix)) {
+			b = b[len(prefix):]
+			if bytes.Equal(b, []byte("split")) {
+				queries = append(queries, string(query))
+				query = query[:0]
+				continue
 			}
-
-			query = append(query, b...)
-			query = append(query, '\n')
+			return fmt.Errorf("ch: unknown directive: %q", b)
 		}
 
-		if len(query) > 0 {
-			queries = append(queries, string(query))
-		}
-		if err := scanner.Err(); err != nil {
+		query = append(query, b...)
+		query = append(query, '\n')
+	}
+
+	if len(query) > 0 {
+		queries = append(queries, string(query))
+	}
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	for _, q := range queries {
+		if _, err := db.ExecContext(ctx, q); err != nil {
 			return err
 		}
-
-		for _, q := range queries {
-			_, err = db.ExecContext(ctx, q)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
 	}
+
+	return nil
 }
 
 const goTemplate = `package %s
