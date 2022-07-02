@@ -27,6 +27,12 @@ func WithLocksTableName(table string) MigratorOption {
 	}
 }
 
+func WithReplicated(on bool) MigratorOption {
+	return func(m *Migrator) {
+		m.replicated = on
+	}
+}
+
 // WithMarkAppliedOnSuccess sets the migrator to only mark migrations as applied/unapplied
 // when their up/down is successful
 func WithMarkAppliedOnSuccess(enabled bool) MigratorOption {
@@ -43,6 +49,7 @@ type Migrator struct {
 
 	table                string
 	locksTable           string
+	replicated           bool
 	markAppliedOnSuccess bool
 }
 
@@ -95,6 +102,12 @@ func (m *Migrator) migrationsWithStatus(ctx context.Context) (MigrationSlice, in
 func (m *Migrator) Init(ctx context.Context) error {
 	if _, err := m.db.NewCreateTable().
 		Model((*Migration)(nil)).
+		WithQuery(func(q *ch.CreateTableQuery) *ch.CreateTableQuery {
+			if m.replicated {
+				return q.Engine("ReplicatedCollapsingMergeTree(sign)")
+			}
+			return q.Engine("CollapsingMergeTree(sign)")
+		}).
 		ModelTableExpr(m.table).
 		IfNotExists().
 		Exec(ctx); err != nil {
@@ -102,6 +115,12 @@ func (m *Migrator) Init(ctx context.Context) error {
 	}
 	if _, err := m.db.NewCreateTable().
 		Model((*migrationLock)(nil)).
+		WithQuery(func(q *ch.CreateTableQuery) *ch.CreateTableQuery {
+			if m.replicated {
+				return q.Engine("ReplicatedMergeTree")
+			}
+			return q.Engine("MergeTree")
+		}).
 		ModelTableExpr(m.locksTable).
 		IfNotExists().
 		Exec(ctx); err != nil {
