@@ -9,6 +9,7 @@ import (
 	"math"
 	"net"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/uptrace/go-clickhouse/ch/chproto"
@@ -447,6 +448,10 @@ func (c StringColumn) ConvertAssign(idx int, v reflect.Value) error {
 			v.SetBytes(internal.Bytes(c.Column[idx]))
 			return nil
 		}
+	case reflect.Map:
+		dec := json.NewDecoder(strings.NewReader(c.Column[idx]))
+		dec.UseNumber()
+		return dec.Decode(v.Addr().Interface())
 	default:
 		v.Set(reflect.ValueOf(c.Column[idx]))
 		return nil
