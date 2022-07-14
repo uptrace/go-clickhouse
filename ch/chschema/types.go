@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/uptrace/go-clickhouse/ch/chtype"
 	"github.com/uptrace/go-clickhouse/ch/internal"
 )
@@ -39,50 +40,6 @@ var chType = [...]string{
 	reflect.String:        chtype.String,
 	reflect.Struct:        chtype.String,
 	reflect.UnsafePointer: "",
-}
-
-// keep in sync with ColumnFactory
-func clickhouseType(typ reflect.Type) string {
-	switch typ {
-	case timeType:
-		return chtype.DateTime
-	case ipType:
-		return chtype.IPv6
-	}
-
-	kind := typ.Kind()
-	switch kind {
-	case reflect.Ptr:
-		if typ.Elem().Kind() == reflect.Struct {
-			return chtype.String
-		}
-		return fmt.Sprintf("Nullable(%s)", clickhouseType(typ.Elem()))
-	case reflect.Slice:
-		switch elem := typ.Elem(); elem.Kind() {
-		case reflect.Ptr:
-			if elem.Elem().Kind() == reflect.Struct {
-				return chtype.String // json
-			}
-		case reflect.Struct:
-			if elem != timeType {
-				return chtype.String // json
-			}
-		case reflect.Uint8:
-			return chtype.String // []byte
-		}
-
-		return "Array(" + clickhouseType(typ.Elem()) + ")"
-	case reflect.Array:
-		if isUUID(typ) {
-			return chtype.UUID
-		}
-	}
-
-	if s := chType[kind]; s != "" {
-		return s
-	}
-
-	panic(fmt.Errorf("ch: unsupported Go type: %s", typ))
 }
 
 type NewColumnFunc func(typ reflect.Type, chType string, numRow int) Columnar
@@ -141,6 +98,13 @@ func ColumnFactory(typ reflect.Type, chType string) NewColumnFunc {
 		chType = chSubType(chType, "SimpleAggregateFunction(")
 	} else if s := dateTimeType(chType); s != "" {
 		chType = s
+	} else if funcName, _ := aggFuncNameAndType(chType); funcName != "" {
+		switch funcName {
+		case "quantileBFloat16", "quantilesBFloat16":
+			return NewBFloat16HistColumn
+		default:
+			panic(fmt.Errorf("unsupported ClickHouse type: %s", chType))
+		}
 	}
 
 	switch typ {
@@ -270,12 +234,13 @@ var (
 	float32Type = reflect.TypeOf(float32(0))
 	float64Type = reflect.TypeOf(float64(0))
 
-	stringType = reflect.TypeOf("")
-	bytesType  = reflect.TypeOf((*[]byte)(nil)).Elem()
-	uuidType   = reflect.TypeOf((*UUID)(nil)).Elem()
-	timeType   = reflect.TypeOf((*time.Time)(nil)).Elem()
-	ipType     = reflect.TypeOf((*net.IP)(nil)).Elem()
-	ipNetType  = reflect.TypeOf((*net.IPNet)(nil)).Elem()
+	stringType      = reflect.TypeOf("")
+	bytesType       = reflect.TypeOf((*[]byte)(nil)).Elem()
+	uuidType        = reflect.TypeOf((*UUID)(nil)).Elem()
+	timeType        = reflect.TypeOf((*time.Time)(nil)).Elem()
+	ipType          = reflect.TypeOf((*net.IP)(nil)).Elem()
+	ipNetType       = reflect.TypeOf((*net.IPNet)(nil)).Elem()
+	bfloat16MapType = reflect.TypeOf((*bfloat16.Map)(nil)).Elem()
 
 	int64SliceType   = reflect.TypeOf((*[]int64)(nil)).Elem()
 	uint64SliceType  = reflect.TypeOf((*[]uint64)(nil)).Elem()
@@ -342,6 +307,51 @@ func goType(chType string) reflect.Type {
 	panic(fmt.Errorf("unsupported ClickHouse type=%q", chType))
 }
 
+// clickhouseType returns ClickHouse type for the given Go type.
+// Keep in sync with ColumnFactory.
+func clickhouseType(typ reflect.Type) string {
+	switch typ {
+	case timeType:
+		return chtype.DateTime
+	case ipType:
+		return chtype.IPv6
+	}
+
+	kind := typ.Kind()
+	switch kind {
+	case reflect.Ptr:
+		if typ.Elem().Kind() == reflect.Struct {
+			return chtype.String
+		}
+		return fmt.Sprintf("Nullable(%s)", clickhouseType(typ.Elem()))
+	case reflect.Slice:
+		switch elem := typ.Elem(); elem.Kind() {
+		case reflect.Ptr:
+			if elem.Elem().Kind() == reflect.Struct {
+				return chtype.String // json
+			}
+		case reflect.Struct:
+			if elem != timeType {
+				return chtype.String // json
+			}
+		case reflect.Uint8:
+			return chtype.String // []byte
+		}
+
+		return "Array(" + clickhouseType(typ.Elem()) + ")"
+	case reflect.Array:
+		if isUUID(typ) {
+			return chtype.UUID
+		}
+	}
+
+	if s := chType[kind]; s != "" {
+		return s
+	}
+
+	panic(fmt.Errorf("ch: unsupported Go type: %s", typ))
+}
+
 func chArrayElemType(s string) string {
 	s = chSubType(s, "Array(")
 	if s == "" {
@@ -401,7 +411,15 @@ func nullableType(s string) string {
 }
 
 func aggFuncNameAndType(chType string) (funcName, funcType string) {
-	s := chSubType(chType, "SimpleAggregateFunction(")
+	var s string
+
+	for _, prefix := range []string{"SimpleAggregateFunction(", "AggregateFunction("} {
+		s = chSubType(chType, prefix)
+		if s != "" {
+			break
+		}
+	}
+
 	if s == "" {
 		return "", ""
 	}

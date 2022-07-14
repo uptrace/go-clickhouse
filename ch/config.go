@@ -261,23 +261,25 @@ func parseDSN(dsn string) ([]Option, error) {
 
 	switch u.Scheme {
 	case "ch", "clickhouse":
-		if u.Host != "" {
-			addr := u.Host
-			if !strings.Contains(addr, ":") {
-				addr += ":5432"
-			}
-			opts = append(opts, WithAddr(addr))
-		}
-
-		if len(u.Path) > 1 {
-			opts = append(opts, WithDatabase(u.Path[1:]))
-		}
-
-		if host := q.string("host"); host != "" {
-			opts = append(opts, WithAddr(host))
-		}
+		// ok
 	default:
 		return nil, errors.New("ch: unknown scheme: " + u.Scheme)
+	}
+
+	if u.Host != "" {
+		addr := u.Host
+		if !strings.Contains(addr, ":") {
+			addr += ":5432"
+		}
+		opts = append(opts, WithAddr(addr))
+	}
+
+	if len(u.Path) > 1 {
+		opts = append(opts, WithDatabase(u.Path[1:]))
+	}
+
+	if host := q.string("host"); host != "" {
+		opts = append(opts, WithAddr(host))
 	}
 
 	if u.User != nil {
