@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/uptrace/go-clickhouse/ch/chproto"
 	"github.com/uptrace/go-clickhouse/ch/internal"
 
@@ -1163,4 +1164,69 @@ func newLCKeyType(typ int64) lcKey {
 	default:
 		panic("not reached")
 	}
+}
+
+//------------------------------------------------------------------------------
+
+type BFloat16HistColumn struct {
+	ColumnOf[bfloat16.Map]
+}
+
+var _ Columnar = (*BFloat16HistColumn)(nil)
+
+func NewBFloat16HistColumn(typ reflect.Type, chType string, numRow int) Columnar {
+	return &BFloat16HistColumn{
+		ColumnOf: NewColumnOf[bfloat16.Map](numRow),
+	}
+}
+
+func (c BFloat16HistColumn) Type() reflect.Type {
+	return bfloat16MapType
+}
+
+func (c *BFloat16HistColumn) ReadFrom(rd *chproto.Reader, numRow int) error {
+	if numRow == 0 {
+		return nil
+	}
+
+	c.Alloc(numRow)
+
+	for i := range c.Column {
+		n, err := rd.Uvarint()
+		if err != nil {
+			return err
+		}
+
+		data := make(bfloat16.Map, n)
+
+		for j := 0; j < int(n); j++ {
+			value, err := rd.UInt16()
+			if err != nil {
+				return err
+			}
+
+			count, err := rd.UInt64()
+			if err != nil {
+				return err
+			}
+
+			data[bfloat16.T(value)] = count
+		}
+
+		c.Column[i] = data
+	}
+
+	return nil
+}
+
+func (c BFloat16HistColumn) WriteTo(wr *chproto.Writer) error {
+	for _, m := range c.Column {
+		wr.Uvarint(uint64(len(m)))
+
+		for k, v := range m {
+			wr.UInt16(uint16(k))
+			wr.UInt64(v)
+		}
+	}
+	return nil
 }
