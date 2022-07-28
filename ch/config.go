@@ -17,6 +17,7 @@ import (
 
 const (
 	discardUnknownColumnsFlag internal.Flag = 1 << iota
+	autoCreateDatabaseFlag
 )
 
 type Config struct {
@@ -24,7 +25,6 @@ type Config struct {
 
 	Compression bool
 
-	Network  string
 	Addr     string
 	User     string
 	Password string
@@ -40,6 +40,11 @@ type Config struct {
 	MaxRetries      int
 	MinRetryBackoff time.Duration
 	MaxRetryBackoff time.Duration
+}
+
+func (cfg *Config) clone() *Config {
+	clone := *cfg
+	return &clone
 }
 
 func (cfg *Config) netDialer() *net.Dialer {
@@ -62,7 +67,6 @@ func defaultConfig() *Config {
 
 		Compression: true,
 
-		Network:  "tcp",
 		Addr:     "localhost:9000",
 		User:     "default",
 		Database: "default",
@@ -93,7 +97,13 @@ func WithCompression(enabled bool) Option {
 	}
 }
 
-// WithAddr configures TCP host:port or Unix socket depending on Network.
+func WithAutoCreateDatabase(enabled bool) Option {
+	return func(db *DB) {
+		db.flags.Set(autoCreateDatabaseFlag)
+	}
+}
+
+// WithAddr configures TCP host:port.
 func WithAddr(addr string) Option {
 	return func(db *DB) {
 		db.cfg.Addr = addr

@@ -35,15 +35,21 @@ type DB struct {
 }
 
 func Connect(opts ...Option) *DB {
-	db := &DB{
-		cfg: defaultConfig(),
+	db := newDB(defaultConfig(), opts...)
+	if db.flags.Has(autoCreateDatabaseFlag) {
+		db.autoCreateDatabase()
 	}
+	return db
+}
 
+func newDB(cfg *Config, opts ...Option) *DB {
+	db := &DB{
+		cfg: cfg,
+	}
 	for _, opt := range opts {
 		opt(db)
 	}
 	db.pool = newConnPool(db.cfg)
-
 	return db
 }
 
@@ -53,12 +59,12 @@ func newConnPool(cfg *Config) *chpool.ConnPool {
 		if cfg.TLSConfig != nil {
 			return tls.DialWithDialer(
 				cfg.netDialer(),
-				cfg.Network,
+				"tcp",
 				cfg.Addr,
 				cfg.TLSConfig,
 			)
 		}
-		return cfg.netDialer().DialContext(ctx, cfg.Network, cfg.Addr)
+		return cfg.netDialer().DialContext(ctx, "tcp", cfg.Addr)
 	}
 	return chpool.New(&poolcfg)
 }
@@ -103,6 +109,32 @@ func (db *DB) Stats() DBStats {
 	return DBStats{
 		Queries: atomic.LoadUint64(&db.stats.Queries),
 		Errors:  atomic.LoadUint64(&db.stats.Errors),
+	}
+}
+
+func (db *DB) autoCreateDatabase() {
+	ctx := context.Background()
+
+	switch err := db.Ping(ctx); err := err.(type) {
+	case nil: // all is good
+		return
+	case *Error:
+		if err.Code != 81 { // 81 - database does not exist
+			return
+		}
+	default:
+		// ignore the error
+		return
+	}
+
+	cfg := db.cfg.clone()
+	cfg.Database = ""
+
+	tmp := newDB(cfg)
+	defer tmp.Close()
+
+	if _, err := tmp.Exec("CREATE DATABASE IF NOT EXISTS ?", Ident(db.cfg.Database)); err != nil {
+		internal.Logger.Printf("create database %q failed: %s", db.cfg.Database, err)
 	}
 }
 
