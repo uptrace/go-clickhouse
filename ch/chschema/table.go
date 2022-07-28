@@ -13,8 +13,7 @@ import (
 )
 
 const (
-	discardUnknownColumnsFlag = internal.Flag(1) << iota
-	columnarFlag
+	columnarFlag = internal.Flag(1) << iota
 	afterScanBlockHookFlag
 )
 

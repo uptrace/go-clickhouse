@@ -23,13 +23,37 @@ func chDB(opts ...ch.Option) *ch.DB {
 		dsn = "clickhouse://localhost:9000/test?sslmode=disable"
 	}
 
-	opts = append(opts, ch.WithDSN(dsn))
+	opts = append(opts, ch.WithDSN(dsn), ch.WithAutoCreateDatabase(true))
 	db := ch.Connect(opts...)
 	db.AddQueryHook(chdebug.NewQueryHook(
 		chdebug.WithEnabled(false),
 		chdebug.FromEnv("CHDEBUG"),
 	))
 	return db
+}
+
+func TestAutoCreateDatabase(t *testing.T) {
+	ctx := context.Background()
+	dbName := "auto_create_database"
+
+	{
+		db := ch.Connect()
+		defer db.Close()
+
+		_, err := db.Exec("DROP DATABASE IF EXISTS ?", ch.Ident(dbName))
+		require.NoError(t, err)
+	}
+
+	{
+		db := ch.Connect(
+			ch.WithDatabase(dbName),
+			ch.WithAutoCreateDatabase(true),
+		)
+		defer db.Close()
+
+		err := db.Ping(ctx)
+		require.NoError(t, err)
+	}
 }
 
 func TestCHError(t *testing.T) {
