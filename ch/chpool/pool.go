@@ -202,11 +202,7 @@ func (p *ConnPool) Get(ctx context.Context) (*Conn, error) {
 			break
 		}
 
-		if p.cfg.ConnMaxLifetime > 0 && time.Since(cn.createdAt) >= p.cfg.ConnMaxLifetime {
-			_ = p.CloseConn(cn)
-			continue
-		}
-		if p.cfg.ConnMaxIdleTime > 0 && time.Since(cn.UsedAt()) >= p.cfg.ConnMaxIdleTime {
+		if !p.isHealthyConn(cn) {
 			_ = p.CloseConn(cn)
 			continue
 		}
@@ -288,23 +284,24 @@ func (p *ConnPool) Put(cn *Conn) {
 		return
 	}
 
-	var atMaxCap bool
+	var shouldCloseConn bool
 
 	p.connsMu.Lock()
 
-	if len(p.idleConns) < p.cfg.MaxIdleConns {
+	if p.cfg.MaxIdleConns == 0 || len(p.idleConns) < p.cfg.MaxIdleConns {
 		p.idleConns = append(p.idleConns, cn)
 	} else {
-		atMaxCap = true
+		p.removeConn(cn)
+		shouldCloseConn = true
 	}
 
 	p.connsMu.Unlock()
 
-	if atMaxCap {
-		p.Remove(cn, nil)
-	}
-
 	p.freeTurn()
+
+	if shouldCloseConn {
+		_ = p.closeConn(cn)
+	}
 }
 
 func (p *ConnPool) Remove(cn *Conn, reason error) {
@@ -320,15 +317,15 @@ func (p *ConnPool) CloseConn(cn *Conn) error {
 
 func (p *ConnPool) removeConnWithLock(cn *Conn) {
 	p.connsMu.Lock()
+	defer p.connsMu.Unlock()
 	p.removeConn(cn)
-	p.connsMu.Unlock()
 }
 
 func (p *ConnPool) removeConn(cn *Conn) {
 	for i, c := range p.conns {
 		if c == cn {
 			p.conns = append(p.conns[:i], p.conns[i+1:]...)
-			return
+			break
 		}
 	}
 }
@@ -389,4 +386,19 @@ func (p *ConnPool) Close() error {
 	p.connsMu.Unlock()
 
 	return firstErr
+}
+
+func (p *ConnPool) isHealthyConn(cn *Conn) bool {
+	now := time.Now()
+
+	if p.cfg.ConnMaxLifetime > 0 && now.Sub(cn.createdAt) >= p.cfg.ConnMaxLifetime {
+		return false
+	}
+	if p.cfg.ConnMaxIdleTime > 0 && now.Sub(cn.UsedAt()) >= p.cfg.ConnMaxIdleTime {
+		atomic.AddUint32(&p.stats.IdleConns, 1)
+		return false
+	}
+
+	cn.SetUsedAt(now)
+	return true
 }
