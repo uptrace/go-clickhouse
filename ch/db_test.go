@@ -294,6 +294,25 @@ func TestDateTime64(t *testing.T) {
 	require.Equal(t, in.Time.UnixNano(), out.Time.UnixNano())
 }
 
+func TestInvalidType(t *testing.T) {
+	t.Skip()
+
+	ctx := context.Background()
+
+	db := chDB()
+	defer db.Close()
+
+	var dest struct {
+		Numbers []float32
+	}
+	err := db.NewSelect().
+		ColumnExpr("groupArray(number) AS numbers").
+		TableExpr("numbers(10)").
+		Scan(ctx, &dest)
+	require.NoError(t, err)
+	require.Equal(t, []float64{}, dest.Numbers)
+}
+
 type Event struct {
 	ch.CHModel `ch:"goch_events,partition:toYYYYMM(created_at)"`
 
