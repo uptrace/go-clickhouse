@@ -14,7 +14,7 @@ type RawQuery struct {
 	args  []any
 }
 
-func (db *DB) Raw(query string, args ...any) *RawQuery {
+func NewRawQuery(db *DB, query string, args ...any) *RawQuery {
 	return &RawQuery{
 		baseQuery: baseQuery{
 			db: db,

@@ -432,6 +432,10 @@ func (db *DB) NewSelect() *SelectQuery {
 	return NewSelectQuery(db)
 }
 
+func (db *DB) NewRaw(query string, args ...any) *RawQuery {
+	return NewRawQuery(db, query, args...)
+}
+
 func (db *DB) NewInsert() *InsertQuery {
 	return NewInsertQuery(db)
 }

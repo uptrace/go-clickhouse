@@ -9,12 +9,20 @@ test:
 	    go vet); \
 	done
 
+.PHONY: go_mod_tidy
 go_mod_tidy:
 	set -e; for dir in $(ALL_GO_MOD_DIRS); do \
 	  echo "go mod tidy in $${dir}"; \
+	  (cd "$${dir}" && go mod tidy -go=1.18); \
+	done
+
+.PHONY: deps
+deps:
+	set -e; for dir in $(ALL_GO_MOD_DIRS); do \
+	  echo "go get -u ./... && go mod tidy in $${dir}"; \
 	  (cd "$${dir}" && \
 	    go get -u ./... && \
-	    go mod tidy); \
+	    go mod tidy -go=1.18); \
 	done
 
 fmt:
