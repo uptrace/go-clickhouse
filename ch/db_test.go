@@ -87,7 +87,7 @@ func TestCHTimeout(t *testing.T) {
 
 	require.Eventually(t, func() bool {
 		var num int
-		err := db.NewSelect().ColumnExpr("count()").TableExpr("system.processes").Scan(ctx, &num)
+		err := db.NewRaw("SELECT count() from system.processes").Scan(ctx, &num)
 		require.NoError(t, err)
 		return num == 1
 	}, time.Second, 100*time.Millisecond)
