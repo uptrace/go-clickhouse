@@ -1,3 +1,21 @@
+## [0.2.9](https://github.com/uptrace/go-clickhouse/compare/v0.2.8...v0.2.9) (2022-08-30)
+
+
+### Bug Fixes
+
+* **migrate:** upping was applying zero migrations ([f1d380c](https://github.com/uptrace/go-clickhouse/commit/f1d380c16590cc2055274c2dc9418792682a8378))
+
+
+### Features
+
+* add bfloat16 support ([75cc666](https://github.com/uptrace/go-clickhouse/commit/75cc6664576884120b629f38a473135cbe5214bd))
+* add Raw ([07c1f88](https://github.com/uptrace/go-clickhouse/commit/07c1f88173bb056e476b56d8a35dc3e5cf00c596))
+* add WithAutoCreateDatabase option ([74e949e](https://github.com/uptrace/go-clickhouse/commit/74e949e01d00e10718d375b43c6f72269165a19d))
+* **chmigrate:** add WithReplicated option ([76433f0](https://github.com/uptrace/go-clickhouse/commit/76433f0158277aaa93fec681bbfca7af623baf8a))
+* **migrate:** added option to only mark migration up/down as applied on success ([0b4f7bf](https://github.com/uptrace/go-clickhouse/commit/0b4f7bf56588c1060375f094406fe530b7086dcf))
+
+
+
 ## [0.2.8](https://github.com/uptrace/go-clickhouse/compare/v0.2.7...v0.2.8) (2022-05-29)
 
 
