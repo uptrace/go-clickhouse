@@ -2,12 +2,11 @@ package chschema
 
 import (
 	"database/sql/driver"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"strconv"
 	"time"
-
-	"github.com/uptrace/go-clickhouse/ch/internal"
 )
 
 func Append(fmter Formatter, b []byte, v any) []byte {
@@ -117,5 +116,13 @@ func AppendBytes(b []byte, bytes []byte) []byte {
 	if bytes == nil {
 		return AppendNull(b)
 	}
-	return AppendString(b, internal.String(bytes))
+
+	tmp := make([]byte, hex.EncodedLen(len(bytes)))
+	hex.Encode(tmp, bytes)
+
+	b = append(b, "unhex('"...)
+	b = append(b, tmp...)
+	b = append(b, "')"...)
+
+	return b
 }
