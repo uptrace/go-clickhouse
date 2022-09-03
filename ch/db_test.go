@@ -3,6 +3,7 @@ package ch_test
 import (
 	"context"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"reflect"
@@ -335,6 +336,44 @@ type EventColumnar struct {
 	Values    [][][]string
 	Kind      []string `ch:"type:Enum8('invalid' = 0, 'hello' = 1, 'world' = 2)"`
 	CreatedAt []time.Time
+}
+
+func TestClickhouse(t *testing.T) {
+	ctx := context.Background()
+
+	db := chDB()
+	defer db.Close()
+
+	tests := []func(ctx context.Context, t *testing.T, db *ch.DB){
+		testWhereBytes,
+	}
+	for _, fn := range tests {
+		t.Run(funcName(fn), func(t *testing.T) {
+			fn(ctx, t, db)
+		})
+	}
+}
+
+func testWhereBytes(ctx context.Context, t *testing.T, db *ch.DB) {
+	type Data struct {
+		Bytes []byte
+	}
+
+	err := db.ResetModel(ctx, (*Data)(nil))
+	require.NoError(t, err)
+
+	src, _ := hex.DecodeString("5C00CC")
+	data := &Data{Bytes: src}
+
+	_, err = db.NewInsert().Model(data).Exec(context.Background())
+	require.NoError(t, err)
+
+	got := new(Data)
+	err = db.NewSelect().Model(got).
+		Where("bytes = ?", data.Bytes).
+		Scan(ctx)
+	require.NoError(t, err)
+	require.Equal(t, data.Bytes, got.Bytes)
 }
 
 func TestORM(t *testing.T) {
