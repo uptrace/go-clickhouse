@@ -12,8 +12,8 @@ exclude go.opentelemetry.io/proto/otlp v0.15.0
 
 require (
 	github.com/brianvoe/gofakeit/v5 v5.11.2
-	github.com/uptrace/go-clickhouse v0.2.9
-	github.com/uptrace/go-clickhouse/chotel v0.2.9
+	github.com/uptrace/go-clickhouse v0.2.10
+	github.com/uptrace/go-clickhouse/chotel v0.2.10
 	github.com/uptrace/opentelemetry-go-extra/otelplay v0.1.15
 	go.opentelemetry.io/otel v1.9.0
 )
@@ -45,7 +45,7 @@ require (
 	golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b // indirect
 	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20220829175752-36a9c930ecbf // indirect
+	google.golang.org/genproto v0.0.0-20220902135211-223410557253 // indirect
 	google.golang.org/grpc v1.49.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 )

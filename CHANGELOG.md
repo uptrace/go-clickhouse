@@ -1,3 +1,7 @@
+## [0.2.10](https://github.com/uptrace/go-clickhouse/compare/v0.2.9...v0.2.10) (2022-09-03)
+
+
+
 ## [0.2.9](https://github.com/uptrace/go-clickhouse/compare/v0.2.8...v0.2.9) (2022-08-30)
 
 
