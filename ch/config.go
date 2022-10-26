@@ -42,22 +42,22 @@ type Config struct {
 	MaxRetryBackoff time.Duration
 }
 
-func (cfg *Config) clone() *Config {
-	clone := *cfg
+func (conf *Config) clone() *Config {
+	clone := *conf
 	return &clone
 }
 
-func (cfg *Config) netDialer() *net.Dialer {
+func (conf *Config) netDialer() *net.Dialer {
 	return &net.Dialer{
-		Timeout:   cfg.DialTimeout,
+		Timeout:   conf.DialTimeout,
 		KeepAlive: 5 * time.Minute,
 	}
 }
 
 func defaultConfig() *Config {
-	var cfg *Config
+	var conf *Config
 	poolSize := 2 * runtime.GOMAXPROCS(0)
-	cfg = &Config{
+	conf = &Config{
 		Config: chpool.Config{
 			PoolSize:        poolSize,
 			PoolTimeout:     30 * time.Second,
@@ -72,14 +72,14 @@ func defaultConfig() *Config {
 		Database: "default",
 
 		DialTimeout:  5 * time.Second,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 10 * time.Second,
 
 		MaxRetries:      2,
 		MinRetryBackoff: 500 * time.Millisecond,
 		MaxRetryBackoff: time.Second,
 	}
-	return cfg
+	return conf
 }
 
 type Option func(db *DB)
@@ -93,7 +93,7 @@ func WithDiscardUnknownColumns() Option {
 // WithCompression enables/disables LZ4 compression.
 func WithCompression(enabled bool) Option {
 	return func(db *DB) {
-		db.cfg.Compression = enabled
+		db.conf.Compression = enabled
 	}
 }
 
@@ -106,48 +106,48 @@ func WithAutoCreateDatabase(enabled bool) Option {
 // WithAddr configures TCP host:port.
 func WithAddr(addr string) Option {
 	return func(db *DB) {
-		db.cfg.Addr = addr
+		db.conf.Addr = addr
 	}
 }
 
 // WithTLSConfig configures TLS config for secure connections.
-func WithTLSConfig(cfg *tls.Config) Option {
+func WithTLSConfig(conf *tls.Config) Option {
 	return func(db *DB) {
-		db.cfg.TLSConfig = cfg
+		db.conf.TLSConfig = conf
 	}
 }
 
 func WithQuerySettings(params map[string]any) Option {
 	return func(db *DB) {
-		db.cfg.QuerySettings = params
+		db.conf.QuerySettings = params
 	}
 }
 
 func WithInsecure(on bool) Option {
 	return func(db *DB) {
 		if on {
-			db.cfg.TLSConfig = nil
+			db.conf.TLSConfig = nil
 		} else {
-			db.cfg.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+			db.conf.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 		}
 	}
 }
 
 func WithUser(user string) Option {
 	return func(db *DB) {
-		db.cfg.User = user
+		db.conf.User = user
 	}
 }
 
 func WithPassword(password string) Option {
 	return func(db *DB) {
-		db.cfg.Password = password
+		db.conf.Password = password
 	}
 }
 
 func WithDatabase(database string) Option {
 	return func(db *DB) {
-		db.cfg.Database = database
+		db.conf.Database = database
 	}
 }
 
@@ -155,7 +155,7 @@ func WithDatabase(database string) Option {
 // Default is 5 seconds.
 func WithDialTimeout(timeout time.Duration) Option {
 	return func(db *DB) {
-		db.cfg.DialTimeout = timeout
+		db.conf.DialTimeout = timeout
 	}
 }
 
@@ -163,7 +163,7 @@ func WithDialTimeout(timeout time.Duration) Option {
 // with a timeout instead of blocking.
 func WithReadTimeout(timeout time.Duration) Option {
 	return func(db *DB) {
-		db.cfg.ReadTimeout = timeout
+		db.conf.ReadTimeout = timeout
 	}
 }
 
@@ -171,15 +171,15 @@ func WithReadTimeout(timeout time.Duration) Option {
 // with a timeout instead of blocking.
 func WithWriteTimeout(timeout time.Duration) Option {
 	return func(db *DB) {
-		db.cfg.WriteTimeout = timeout
+		db.conf.WriteTimeout = timeout
 	}
 }
 
 func WithTimeout(timeout time.Duration) Option {
 	return func(db *DB) {
-		db.cfg.DialTimeout = timeout
-		db.cfg.ReadTimeout = timeout
-		db.cfg.WriteTimeout = timeout
+		db.conf.DialTimeout = timeout
+		db.conf.ReadTimeout = timeout
+		db.conf.WriteTimeout = timeout
 	}
 }
 
@@ -187,7 +187,7 @@ func WithTimeout(timeout time.Duration) Option {
 // Default is to retry query 2 times.
 func WithMaxRetries(maxRetries int) Option {
 	return func(db *DB) {
-		db.cfg.MaxRetries = maxRetries
+		db.conf.MaxRetries = maxRetries
 	}
 }
 
@@ -195,7 +195,7 @@ func WithMaxRetries(maxRetries int) Option {
 // Default is 250 milliseconds; -1 disables backoff.
 func WithMinRetryBackoff(backoff time.Duration) Option {
 	return func(db *DB) {
-		db.cfg.MinRetryBackoff = backoff
+		db.conf.MinRetryBackoff = backoff
 	}
 }
 
@@ -203,7 +203,7 @@ func WithMinRetryBackoff(backoff time.Duration) Option {
 // Default is 4 seconds; -1 disables backoff.
 func WithMaxRetryBackoff(backoff time.Duration) Option {
 	return func(db *DB) {
-		db.cfg.MaxRetryBackoff = backoff
+		db.conf.MaxRetryBackoff = backoff
 	}
 }
 
@@ -211,8 +211,8 @@ func WithMaxRetryBackoff(backoff time.Duration) Option {
 // Default is 2 connections per every CPU as reported by runtime.NumCPU.
 func WithPoolSize(poolSize int) Option {
 	return func(db *DB) {
-		db.cfg.PoolSize = poolSize
-		db.cfg.MaxIdleConns = poolSize
+		db.conf.PoolSize = poolSize
+		db.conf.MaxIdleConns = poolSize
 	}
 }
 
@@ -222,7 +222,7 @@ func WithPoolSize(poolSize int) Option {
 // If d <= 0, connections are not closed due to a connection's age.
 func WithConnMaxLifetime(d time.Duration) Option {
 	return func(db *DB) {
-		db.cfg.ConnMaxLifetime = d
+		db.conf.ConnMaxLifetime = d
 	}
 }
 
@@ -234,7 +234,7 @@ func WithConnMaxLifetime(d time.Duration) Option {
 // ClickHouse closes idle connections after 1 hour (see idle_connection_timeout).
 func WithConnMaxIdleTime(d time.Duration) Option {
 	return func(db *DB) {
-		db.cfg.ConnMaxIdleTime = d
+		db.conf.ConnMaxIdleTime = d
 	}
 }
 
@@ -244,7 +244,7 @@ func WithConnMaxIdleTime(d time.Duration) Option {
 // ReadTimeout + 1 second.
 func WithPoolTimeout(timeout time.Duration) Option {
 	return func(db *DB) {
-		db.cfg.PoolTimeout = timeout
+		db.conf.PoolTimeout = timeout
 	}
 }
 
