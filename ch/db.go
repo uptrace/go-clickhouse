@@ -24,7 +24,7 @@ type DBStats struct {
 }
 
 type DB struct {
-	cfg  *Config
+	conf *Config
 	pool *chpool.ConnPool
 
 	queryHooks []QueryHook
@@ -42,31 +42,31 @@ func Connect(opts ...Option) *DB {
 	return db
 }
 
-func newDB(cfg *Config, opts ...Option) *DB {
+func newDB(conf *Config, opts ...Option) *DB {
 	db := &DB{
-		cfg: cfg,
+		conf: conf,
 	}
 	for _, opt := range opts {
 		opt(db)
 	}
-	db.pool = newConnPool(db.cfg)
+	db.pool = newConnPool(db.conf)
 	return db
 }
 
-func newConnPool(cfg *Config) *chpool.ConnPool {
-	poolcfg := cfg.Config
-	poolcfg.Dialer = func(ctx context.Context) (net.Conn, error) {
-		if cfg.TLSConfig != nil {
+func newConnPool(conf *Config) *chpool.ConnPool {
+	poolconf := conf.Config
+	poolconf.Dialer = func(ctx context.Context) (net.Conn, error) {
+		if conf.TLSConfig != nil {
 			return tls.DialWithDialer(
-				cfg.netDialer(),
+				conf.netDialer(),
 				"tcp",
-				cfg.Addr,
-				cfg.TLSConfig,
+				conf.Addr,
+				conf.TLSConfig,
 			)
 		}
-		return cfg.netDialer().DialContext(ctx, "tcp", cfg.Addr)
+		return conf.netDialer().DialContext(ctx, "tcp", conf.Addr)
 	}
-	return chpool.New(&poolcfg)
+	return chpool.New(&poolconf)
 }
 
 // Close closes the database client, releasing any open resources.
@@ -78,20 +78,20 @@ func (db *DB) Close() error {
 }
 
 func (db *DB) String() string {
-	return fmt.Sprintf("DB<addr: %s>", db.cfg.Addr)
+	return fmt.Sprintf("DB<addr: %s>", db.conf.Addr)
 }
 
 func (db *DB) Config() *Config {
-	return db.cfg
+	return db.conf
 }
 
 func (db *DB) WithTimeout(d time.Duration) *DB {
-	newcfg := *db.cfg
-	newcfg.ReadTimeout = d
-	newcfg.WriteTimeout = d
+	newconf := *db.conf
+	newconf.ReadTimeout = d
+	newconf.WriteTimeout = d
 
 	clone := db.clone()
-	clone.cfg = &newcfg
+	clone.conf = &newconf
 
 	return clone
 }
@@ -127,14 +127,14 @@ func (db *DB) autoCreateDatabase() {
 		return
 	}
 
-	cfg := db.cfg.clone()
-	cfg.Database = ""
+	conf := db.conf.clone()
+	conf.Database = ""
 
-	tmp := newDB(cfg)
+	tmp := newDB(conf)
 	defer tmp.Close()
 
-	if _, err := tmp.Exec("CREATE DATABASE IF NOT EXISTS ?", Ident(db.cfg.Database)); err != nil {
-		internal.Logger.Printf("create database %q failed: %s", db.cfg.Database, err)
+	if _, err := tmp.Exec("CREATE DATABASE IF NOT EXISTS ?", Ident(db.conf.Database)); err != nil {
+		internal.Logger.Printf("create database %q failed: %s", db.conf.Database, err)
 	}
 }
 
@@ -226,7 +226,7 @@ func (db *DB) _withConn(ctx context.Context, fn func(*chpool.Conn) error) error 
 }
 
 func (db *DB) cancelConn(ctx context.Context, cn *chpool.Conn) {
-	if err := cn.WithWriter(ctx, db.cfg.WriteTimeout, func(wr *chproto.Writer) {
+	if err := cn.WithWriter(ctx, db.conf.WriteTimeout, func(wr *chproto.Writer) {
 		writeCancel(wr)
 	}); err != nil {
 		internal.Logger.Printf("writeCancel failed: %s", err)
@@ -237,12 +237,12 @@ func (db *DB) cancelConn(ctx context.Context, cn *chpool.Conn) {
 
 func (db *DB) Ping(ctx context.Context) error {
 	return db.withConn(ctx, func(cn *chpool.Conn) error {
-		if err := cn.WithWriter(ctx, db.cfg.WriteTimeout, func(wr *chproto.Writer) {
+		if err := cn.WithWriter(ctx, db.conf.WriteTimeout, func(wr *chproto.Writer) {
 			writePing(wr)
 		}); err != nil {
 			return err
 		}
-		return cn.WithReader(ctx, db.cfg.ReadTimeout, func(rd *chproto.Reader) error {
+		return cn.WithReader(ctx, db.conf.ReadTimeout, func(rd *chproto.Reader) error {
 			return readPong(rd)
 		})
 	})
@@ -265,7 +265,7 @@ func (db *DB) ExecContext(
 func (db *DB) exec(ctx context.Context, query string) (*result, error) {
 	var res *result
 	var lastErr error
-	for attempt := 0; attempt <= db.cfg.MaxRetries; attempt++ {
+	for attempt := 0; attempt <= db.conf.MaxRetries; attempt++ {
 		if attempt > 0 {
 			lastErr = internal.Sleep(ctx, db.retryBackoff(attempt-1))
 			if lastErr != nil {
@@ -284,13 +284,13 @@ func (db *DB) exec(ctx context.Context, query string) (*result, error) {
 func (db *DB) _exec(ctx context.Context, query string) (*result, error) {
 	var res *result
 	err := db.withConn(ctx, func(cn *chpool.Conn) error {
-		if err := cn.WithWriter(ctx, db.cfg.WriteTimeout, func(wr *chproto.Writer) {
+		if err := cn.WithWriter(ctx, db.conf.WriteTimeout, func(wr *chproto.Writer) {
 			db.writeQuery(ctx, cn, wr, query)
 			db.writeBlock(ctx, wr, nil)
 		}); err != nil {
 			return err
 		}
-		return cn.WithReader(ctx, db.cfg.ReadTimeout, func(rd *chproto.Reader) error {
+		return cn.WithReader(ctx, db.conf.ReadTimeout, func(rd *chproto.Reader) error {
 			var err error
 			res, err = db.readDataBlocks(cn, rd)
 			return err
@@ -331,7 +331,7 @@ func (db *DB) query(ctx context.Context, query string) (*blockIter, error) {
 	var blocks *blockIter
 	var lastErr error
 
-	for attempt := 0; attempt <= db.cfg.MaxRetries; attempt++ {
+	for attempt := 0; attempt <= db.conf.MaxRetries; attempt++ {
 		if attempt > 0 {
 			lastErr = internal.Sleep(ctx, db.retryBackoff(attempt-1))
 			if lastErr != nil {
@@ -354,7 +354,7 @@ func (db *DB) _query(ctx context.Context, query string) (*blockIter, error) {
 		return nil, err
 	}
 
-	if err := cn.WithWriter(ctx, db.cfg.WriteTimeout, func(wr *chproto.Writer) {
+	if err := cn.WithWriter(ctx, db.conf.WriteTimeout, func(wr *chproto.Writer) {
 		db.writeQuery(ctx, cn, wr, query)
 		db.writeBlock(ctx, wr, nil)
 	}); err != nil {
@@ -372,7 +372,7 @@ func (db *DB) insert(
 	var res *result
 	var lastErr error
 
-	for attempt := 0; attempt <= db.cfg.MaxRetries; attempt++ {
+	for attempt := 0; attempt <= db.conf.MaxRetries; attempt++ {
 		if attempt > 0 {
 			lastErr = internal.Sleep(ctx, db.retryBackoff(attempt-1))
 			if lastErr != nil {
@@ -394,28 +394,28 @@ func (db *DB) _insert(
 ) (*result, error) {
 	var res *result
 	err := db.withConn(ctx, func(cn *chpool.Conn) error {
-		if err := cn.WithWriter(ctx, db.cfg.WriteTimeout, func(wr *chproto.Writer) {
+		if err := cn.WithWriter(ctx, db.conf.WriteTimeout, func(wr *chproto.Writer) {
 			db.writeQuery(ctx, cn, wr, query)
 			db.writeBlock(ctx, wr, nil)
 		}); err != nil {
 			return err
 		}
 
-		if err := cn.WithReader(ctx, db.cfg.ReadTimeout, func(rd *chproto.Reader) error {
+		if err := cn.WithReader(ctx, db.conf.ReadTimeout, func(rd *chproto.Reader) error {
 			_, err := db.readSampleBlock(rd)
 			return err
 		}); err != nil {
 			return err
 		}
 
-		if err := cn.WithWriter(ctx, db.cfg.WriteTimeout, func(wr *chproto.Writer) {
+		if err := cn.WithWriter(ctx, db.conf.WriteTimeout, func(wr *chproto.Writer) {
 			db.writeBlock(ctx, wr, block)
 			db.writeBlock(ctx, wr, nil)
 		}); err != nil {
 			return err
 		}
 
-		return cn.WithReader(ctx, db.cfg.ReadTimeout, func(rd *chproto.Reader) error {
+		return cn.WithReader(ctx, db.conf.ReadTimeout, func(rd *chproto.Reader) error {
 			var err error
 			res, err = readPacket(cn, rd)
 			if err != nil {
@@ -501,7 +501,7 @@ func (db *DB) shouldRetry(err error) bool {
 
 func (db *DB) retryBackoff(attempt int) time.Duration {
 	return internal.RetryBackoff(
-		attempt, db.cfg.MinRetryBackoff, db.cfg.MaxRetryBackoff)
+		attempt, db.conf.MinRetryBackoff, db.conf.MaxRetryBackoff)
 }
 
 func (db *DB) FormatQuery(query string, args ...any) string {

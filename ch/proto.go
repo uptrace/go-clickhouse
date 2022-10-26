@@ -75,7 +75,7 @@ func (it *blockIter) Next(ctx context.Context, block *chschema.Block) bool {
 }
 
 func (it *blockIter) read(ctx context.Context, block *chschema.Block) (bool, error) {
-	rd := it.cn.Reader(ctx, it.db.cfg.ReadTimeout)
+	rd := it.cn.Reader(ctx, it.db.conf.ReadTimeout)
 	for {
 		packet, err := rd.Uvarint()
 		if err != nil {
@@ -116,19 +116,19 @@ func (it *blockIter) read(ctx context.Context, block *chschema.Block) (bool, err
 }
 
 func (db *DB) hello(ctx context.Context, cn *chpool.Conn) error {
-	err := cn.WithWriter(ctx, db.cfg.WriteTimeout, func(wr *chproto.Writer) {
+	err := cn.WithWriter(ctx, db.conf.WriteTimeout, func(wr *chproto.Writer) {
 		wr.WriteByte(chproto.ClientHello)
 		writeClientInfo(wr)
 
-		wr.String(db.cfg.Database)
-		wr.String(db.cfg.User)
-		wr.String(db.cfg.Password)
+		wr.String(db.conf.Database)
+		wr.String(db.conf.User)
+		wr.String(db.conf.Password)
 	})
 	if err != nil {
 		return err
 	}
 
-	return cn.WithReader(ctx, db.cfg.ReadTimeout, func(rd *chproto.Reader) error {
+	return cn.WithReader(ctx, db.conf.ReadTimeout, func(rd *chproto.Reader) error {
 		packet, err := rd.Uvarint()
 		if err != nil {
 			return err
@@ -303,7 +303,7 @@ func (db *DB) writeQuery(ctx context.Context, cn *chpool.Conn, wr *chproto.Write
 		wr.String("")
 	}
 	wr.Uvarint(2) // state complete
-	wr.Bool(db.cfg.Compression)
+	wr.Bool(db.conf.Compression)
 	wr.String(query)
 }
 
@@ -315,7 +315,7 @@ func reverseBytes(b []byte) []byte {
 }
 
 func (db *DB) writeSettings(cn *chpool.Conn, wr *chproto.Writer) {
-	for key, value := range db.cfg.QuerySettings {
+	for key, value := range db.conf.QuerySettings {
 		wr.String(key)
 
 		if cn.ServerInfo.Revision > chproto.DBMS_MIN_REVISION_WITH_SETTINGS_SERIALIZED_AS_STRINGS {
@@ -353,7 +353,7 @@ func (db *DB) writeBlock(ctx context.Context, wr *chproto.Writer, block *chschem
 	wr.WriteByte(chproto.ClientData)
 	wr.String("")
 
-	wr.WithCompression(db.cfg.Compression, func() error {
+	wr.WithCompression(db.conf.Compression, func() error {
 		writeBlockInfo(wr)
 		return block.WriteTo(wr)
 	})
@@ -478,7 +478,7 @@ func (db *DB) readBlock(rd *chproto.Reader, block *chschema.Block, compressible 
 		return err
 	}
 
-	return rd.WithCompression(compressible && db.cfg.Compression, func() error {
+	return rd.WithCompression(compressible && db.conf.Compression, func() error {
 		if err := readBlockInfo(rd); err != nil {
 			return err
 		}
