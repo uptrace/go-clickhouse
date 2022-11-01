@@ -358,36 +358,28 @@ func (q *baseQuery) appendSettings(fmter chschema.Formatter, b []byte) (_ []byte
 
 //------------------------------------------------------------------------------
 
-type WhereQuery struct {
+type whereBaseQuery struct {
+	baseQuery
+
 	where []chschema.QueryWithSep
 }
 
-func (q *WhereQuery) addWhere(where chschema.QueryWithSep) {
+func (q *whereBaseQuery) addWhere(where chschema.QueryWithSep) {
 	q.where = append(q.where, where)
 }
 
-func (q *WhereQuery) WhereGroup(sep string, fn func(*WhereQuery)) {
-	q.addWhereGroup(sep, fn)
-}
-
-func (q *WhereQuery) addWhereGroup(sep string, fn func(*WhereQuery)) {
-	q2 := new(WhereQuery)
-	fn(q2)
-
-	if len(q2.where) > 0 {
-		q2.where[0].Sep = ""
-
-		q.addWhere(chschema.SafeQueryWithSep("", nil, sep+"("))
-		q.where = append(q.where, q2.where...)
-		q.addWhere(chschema.SafeQueryWithSep("", nil, ")"))
+func (q *whereBaseQuery) addWhereGroup(sep string, where []chschema.QueryWithSep) {
+	if len(where) == 0 {
+		return
 	}
-}
 
-//------------------------------------------------------------------------------
+	q.addWhere(chschema.SafeQueryWithSep("", nil, sep))
+	q.addWhere(chschema.SafeQueryWithSep("", nil, "("))
 
-type whereBaseQuery struct {
-	baseQuery
-	WhereQuery
+	where[0].Sep = ""
+	q.where = append(q.where, where...)
+
+	q.addWhere(chschema.SafeQueryWithSep("", nil, ")"))
 }
 
 func (q *whereBaseQuery) mustAppendWhere(fmter chschema.Formatter, b []byte) ([]byte, error) {
@@ -421,7 +413,7 @@ func appendWhere(
 			b = append(b, where.Sep...)
 		}
 
-		if where.Query == "" && where.Args == nil {
+		if where.Query == "" {
 			continue
 		}
 

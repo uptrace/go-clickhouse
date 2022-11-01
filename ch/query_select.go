@@ -173,8 +173,17 @@ func (q *SelectQuery) WhereOr(query string, args ...any) *SelectQuery {
 	return q
 }
 
-func (q *SelectQuery) WhereGroup(sep string, fn func(*WhereQuery)) *SelectQuery {
-	q.addWhereGroup(sep, fn)
+func (q *SelectQuery) WhereGroup(sep string, fn func(*SelectQuery) *SelectQuery) *SelectQuery {
+	saved := q.where
+	q.where = nil
+
+	q = fn(q)
+
+	where := q.where
+	q.where = saved
+
+	q.addWhereGroup(sep, where)
+
 	return q
 }
 

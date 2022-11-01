@@ -85,11 +85,6 @@ func (q *InsertQuery) WhereOr(query string, args ...any) *InsertQuery {
 	return q
 }
 
-func (q *InsertQuery) WhereGroup(sep string, fn func(*WhereQuery)) *InsertQuery {
-	q.addWhereGroup(sep, fn)
-	return q
-}
-
 //------------------------------------------------------------------------------
 
 func (q *InsertQuery) Operation() string {
