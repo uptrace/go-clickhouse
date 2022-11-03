@@ -134,6 +134,10 @@ func (q QueryWithArgs) IsZero() bool {
 	return q.Query == "" && q.Args == nil
 }
 
+func (q QueryWithArgs) IsEmpty() bool {
+	return q.Query == ""
+}
+
 func (q QueryWithArgs) AppendQuery(fmter Formatter, b []byte) ([]byte, error) {
 	if q.Args == nil {
 		return fmter.AppendIdent(b, q.Query), nil
