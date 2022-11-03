@@ -356,6 +356,40 @@ func (q *baseQuery) appendSettings(fmter chschema.Formatter, b []byte) (_ []byte
 	return b, nil
 }
 
+func (q *baseQuery) appendColumns(fmter chschema.Formatter, b []byte) (_ []byte, err error) {
+	switch {
+	case q.columns != nil:
+		for i, f := range q.columns {
+			if i > 0 {
+				b = append(b, ", "...)
+			}
+			b, err = f.AppendQuery(fmter, b)
+			if err != nil {
+				return nil, err
+			}
+		}
+	case q.table != nil:
+		b = appendTableColumns(b, q.table.CHAlias, q.table.Fields)
+	default:
+		b = append(b, '*')
+	}
+	return b, nil
+}
+
+func appendTableColumns(b []byte, table chschema.Safe, fields []*chschema.Field) []byte {
+	for i, f := range fields {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		if len(table) > 0 {
+			b = append(b, table...)
+			b = append(b, '.')
+		}
+		b = append(b, f.Column...)
+	}
+	return b
+}
+
 //------------------------------------------------------------------------------
 
 type whereBaseQuery struct {

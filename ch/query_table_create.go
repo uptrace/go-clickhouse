@@ -37,7 +37,7 @@ func (q *CreateTableQuery) WithQuery(fn func(*CreateTableQuery) *CreateTableQuer
 	return fn(q)
 }
 
-// ------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 func (q *CreateTableQuery) Table(tables ...string) *CreateTableQuery {
 	for _, table := range tables {

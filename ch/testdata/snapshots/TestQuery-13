@@ -1,0 +1,1 @@
+CREATE VIEW "view_name"TO "dest_table" AS SELECT "col1", col1 AS alias FROM src_table AS alias

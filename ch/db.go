@@ -452,6 +452,14 @@ func (db *DB) NewTruncateTable() *TruncateTableQuery {
 	return NewTruncateTableQuery(db)
 }
 
+func (db *DB) NewCreateView() *CreateViewQuery {
+	return NewCreateViewQuery(db)
+}
+
+func (db *DB) NewDropView() *DropViewQuery {
+	return NewDropViewQuery(db)
+}
+
 func (db *DB) ResetModel(ctx context.Context, models ...any) error {
 	for _, model := range models {
 		if _, err := db.NewDropTable().Model(model).IfExists().Exec(ctx); err != nil {

@@ -76,6 +76,26 @@ func TestQuery(t *testing.T) {
 				Order("id").
 				Setting("ttl_only_drop_parts = 1")
 		},
+		func(db *ch.DB) chschema.QueryAppender {
+			return db.NewDropView().View("view_name")
+		},
+		func(db *ch.DB) chschema.QueryAppender {
+			return db.NewDropView().IfExists().ViewExpr("view_name")
+		},
+		func(db *ch.DB) chschema.QueryAppender {
+			return db.NewCreateView().
+				Materialized().
+				IfNotExists().
+				View("view_name").
+				To("dest_table").
+				Column("col1").
+				ColumnExpr("col1 AS alias").
+				TableExpr("src_table AS alias").
+				Where("foo = bar").
+				Group("group1").
+				GroupExpr("group2, group3").
+				OrderExpr("order2, order3")
+		},
 	}
 
 	db := chDB()
