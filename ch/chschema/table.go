@@ -259,7 +259,7 @@ func (t *Table) NewColumn(colName, colType string, numRow int) *Column {
 	}
 
 	if colType != field.CHType {
-		if field.CHType != chtype.Any {
+		if field.CHType != chtype.Any && false {
 			internal.Logger.Printf("got column type %q, but %s.%s has type %q",
 				colType, t.Type.Name(), field.GoName, field.CHType)
 		}
