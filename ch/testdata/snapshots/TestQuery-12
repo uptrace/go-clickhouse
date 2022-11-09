@@ -1,1 +1,1 @@
-DROP VIEW IF EXISTS hello_world
+DROP VIEW IF EXISTS view_name
