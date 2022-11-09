@@ -49,15 +49,23 @@ func newDBCommand(db *ch.DB, migrator *chmigrate.Migrator) *cli.Command {
 				Name:  "migrate",
 				Usage: "migrate database",
 				Action: func(c *cli.Context) error {
+					if err := migrator.Lock(c.Context); err != nil {
+						return err
+					}
+					defer migrator.Unlock(c.Context) //nolint:errcheck
+
 					group, err := migrator.Migrate(c.Context)
 					if err != nil {
 						return err
 					}
+
 					if group.IsZero() {
 						fmt.Printf("there are no new migrations to run (database is up to date)\n")
 						return nil
 					}
+
 					fmt.Printf("migrated to %s\n", group)
+
 					return nil
 				},
 			},
@@ -65,15 +73,23 @@ func newDBCommand(db *ch.DB, migrator *chmigrate.Migrator) *cli.Command {
 				Name:  "rollback",
 				Usage: "rollback the last migration group",
 				Action: func(c *cli.Context) error {
+					if err := migrator.Lock(c.Context); err != nil {
+						return err
+					}
+					defer migrator.Unlock(c.Context) //nolint:errcheck
+
 					group, err := migrator.Rollback(c.Context)
 					if err != nil {
 						return err
 					}
+
 					if group.IsZero() {
 						fmt.Printf("there are no groups to roll back\n")
 						return nil
 					}
+
 					fmt.Printf("rolled back %s\n", group)
+
 					return nil
 				},
 			},
