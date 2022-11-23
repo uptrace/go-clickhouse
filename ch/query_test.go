@@ -96,6 +96,25 @@ func TestQuery(t *testing.T) {
 				GroupExpr("group2, group3").
 				OrderExpr("order2, order3")
 		},
+		func(db *ch.DB) chschema.QueryAppender {
+			return db.NewSelect().
+				Model((*Model)(nil)).
+				Final()
+		},
+		func(db *ch.DB) chschema.QueryAppender {
+			return db.NewSelect().
+				Model((*Model)(nil)).
+				Where("id = ?", 1).
+				Final()
+		},
+		func(db *ch.DB) chschema.QueryAppender {
+			return db.NewSelect().
+				Model((*Model)(nil)).
+				Where("id = ?", 1).
+				Final().
+				Group("id").
+				OrderExpr("id")
+		},
 	}
 
 	db := chDB()
