@@ -325,6 +325,9 @@ func (q *SelectQuery) appendQuery(
 			return nil, err
 		}
 	}
+	if q.final {
+		b = append(b, " FINAL"...)
+	}
 	if !q.sample.IsZero() {
 		b = append(b, " SAMPLE "...)
 		b, err = q.sample.AppendQuery(fmter, b)
@@ -395,9 +398,6 @@ func (q *SelectQuery) appendQuery(
 		if q.offset > 0 {
 			b = append(b, " OFFSET "...)
 			b = strconv.AppendInt(b, int64(q.offset), 10)
-		}
-		if q.final {
-			b = append(b, " FINAL"...)
 		}
 	} else if cteCount {
 		b = append(b, `) SELECT `...)
