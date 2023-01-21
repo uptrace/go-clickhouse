@@ -12,14 +12,16 @@ import (
 
 {{- range . }}
 
-func (c *{{ .CHType }}Column) ReadFrom(rd *chproto.Reader, numRow int) error {
+{{ if eq .Size 0 }} {{ continue }} {{ end }}
+
+func (c *{{ .Name }}Column) ReadFrom(rd *chproto.Reader, numRow int) error {
 	const size = {{ .Size }} / 8
 
 	if numRow == 0 {
 		return nil
 	}
 
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	slice := *(*reflect.SliceHeader)(unsafe.Pointer(&c.Column))
 	slice.Len *= size
@@ -30,7 +32,7 @@ func (c *{{ .CHType }}Column) ReadFrom(rd *chproto.Reader, numRow int) error {
 	return err
 }
 
-func (c *{{ .CHType }}Column) WriteTo(wr *chproto.Writer) error {
+func (c *{{ .Name }}Column) WriteTo(wr *chproto.Writer) error {
 	const size = {{ .Size }} / 8
 
 	if len(c.Column) == 0 {

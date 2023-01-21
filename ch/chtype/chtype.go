@@ -2,6 +2,7 @@ package chtype
 
 const (
 	Any        = "_" // for decoding into interface{}
+	Bool       = "Bool"
 	String     = "String"
 	UUID       = "UUID"
 	Int8       = "Int8"

@@ -12,15 +12,29 @@ type NullableColumn struct {
 	nullable reflect.Value // reflect.Slice
 }
 
-func NullableNewColumnFunc(fn NewColumnFunc) NewColumnFunc {
-	return func(typ reflect.Type, chType string, numRow int) Columnar {
+func NewNullableColumnFunc(fn NewColumnFunc) NewColumnFunc {
+	return func() Columnar {
 		return &NullableColumn{
-			Values: fn(typ, chType, numRow),
+			Values: fn(),
 		}
 	}
 }
 
 var _ Columnar = (*NullableColumn)(nil)
+
+func (c *NullableColumn) Init(chType string) error {
+	return nil
+}
+
+func (c *NullableColumn) AllocForReading(numRow int) {
+	c.Nulls.AllocForReading(numRow)
+	c.Values.AllocForReading(numRow)
+}
+
+func (c *NullableColumn) ResetForWriting(numRow int) {
+	c.Nulls.ResetForWriting(numRow)
+	c.Values.ResetForWriting(numRow)
+}
 
 func (c *NullableColumn) Type() reflect.Type {
 	return reflect.PtrTo(c.Values.Type())

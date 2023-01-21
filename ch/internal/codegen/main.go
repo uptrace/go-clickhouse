@@ -15,39 +15,68 @@ import (
 var dirFlag = flag.String("dir", "", "destination directory name")
 
 var (
+	//go:embed column.tpl
+	columnSrc string
 	//go:embed column_safe.tpl
 	columnSafeSrc string
 	//go:embed column_unsafe.tpl
 	columnUnsafeSrc string
 )
 
-var types []ColumnType
+var columns []ColumnType
 
 type ColumnType struct {
-	CHType string
-	GoType string
-	Size   int
+	Name      string
+	GoType    string
+	GoReflect string
+	Size      int
+	IsCustom  bool
 }
 
 func init() {
 	for _, size := range []int{8, 16, 32, 64} {
-		types = append(types, ColumnType{
-			CHType: fmt.Sprintf("Int%d", size),
-			GoType: fmt.Sprintf("int%d", size),
-			Size:   size,
+		columns = append(columns, ColumnType{
+			Name:      fmt.Sprintf("Int%d", size),
+			GoType:    fmt.Sprintf("int%d", size),
+			GoReflect: "Int",
+			Size:      size,
 		}, ColumnType{
-			CHType: fmt.Sprintf("UInt%d", size),
-			GoType: fmt.Sprintf("uint%d", size),
-			Size:   size,
+			Name:      fmt.Sprintf("UInt%d", size),
+			GoType:    fmt.Sprintf("uint%d", size),
+			GoReflect: "Uint",
+			Size:      size,
 		})
 	}
 	for _, size := range []int{32, 64} {
-		types = append(types, ColumnType{
-			Size:   size,
-			CHType: fmt.Sprintf("Float%d", size),
-			GoType: fmt.Sprintf("float%d", size),
+		columns = append(columns, ColumnType{
+			Name:      fmt.Sprintf("Float%d", size),
+			GoType:    fmt.Sprintf("float%d", size),
+			GoReflect: "Float",
+			Size:      size,
 		})
 	}
+
+	columns = append(columns, ColumnType{
+		Name:      "Bool",
+		GoType:    "bool",
+		GoReflect: "Bool",
+	}, ColumnType{
+		Name:      "String",
+		GoType:    "string",
+		GoReflect: "String",
+	}, ColumnType{
+		Name:      "Bytes",
+		GoType:    "[]byte",
+		GoReflect: "Bytes",
+	}, ColumnType{
+		Name:      "Enum",
+		GoType:    "string",
+		GoReflect: "String",
+		IsCustom:  true,
+	}, ColumnType{
+		Name:   "DateTime",
+		GoType: "time.Time",
+	})
 }
 
 func main() {
@@ -55,18 +84,21 @@ func main() {
 
 	for _, v := range []struct {
 		name string
-		tpl  *template.Template
+		tpl  string
 	}{
-		{"column_safe_gen", template.Must(template.New("").Parse(columnSafeSrc))},
-		{"column_unsafe_gen", template.Must(template.New("").Parse(columnUnsafeSrc))},
+		{"column_gen", columnSrc},
+		{"column_safe_gen", columnSafeSrc},
+		{"column_unsafe_gen", columnUnsafeSrc},
 	} {
-		if err := write(filepath.Join(*dirFlag, v.name+".go"), v.tpl, types); err != nil {
-			log.Fatal(err)
+		dest := filepath.Join(*dirFlag, v.name+".go")
+		tpl := template.Must(template.New("").Parse(v.tpl))
+		if err := gen(dest, tpl, columns); err != nil {
+			log.Fatalf("%s: %s", v.name, err)
 		}
 	}
 }
 
-func write(filePath string, tpl *template.Template, vars interface{}) error {
+func gen(filePath string, tpl *template.Template, vars any) error {
 	buf := new(bytes.Buffer)
 	if err := tpl.Execute(buf, vars); err != nil {
 		return err
@@ -74,7 +106,7 @@ func write(filePath string, tpl *template.Template, vars interface{}) error {
 
 	data, err := format.Source(buf.Bytes())
 	if err != nil {
-		return err
+		data = buf.Bytes()
 	}
 
 	if err := os.WriteFile(filePath, data, 0o644); err != nil {
