@@ -1,3 +1,17 @@
+# [0.3.0](https://github.com/uptrace/go-clickhouse/compare/v0.2.9...v0.3.0) (2023-01-21)
+
+
+### Bug Fixes
+
+* move FINAL modifier to the right place ([#52](https://github.com/uptrace/go-clickhouse/issues/52)) ([31f2e73](https://github.com/uptrace/go-clickhouse/commit/31f2e731adfb00031ebd82bbb0f2dcfc9e9c5b69))
+
+
+### Features
+
+* add queries to create/drop views ([cbdda72](https://github.com/uptrace/go-clickhouse/commit/cbdda720552afe9b72ba5fc716e2d6b5a73f56e6))
+
+
+
 ## [0.2.9](https://github.com/uptrace/go-clickhouse/compare/v0.2.8...v0.2.9) (2022-08-30)
 
 
