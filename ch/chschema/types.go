@@ -39,7 +39,7 @@ var (
 )
 
 var chTypes = [...]string{
-	reflect.Bool:          chtype.UInt8,
+	reflect.Bool:          chtype.Bool,
 	reflect.Int:           chtype.Int64,
 	reflect.Int8:          chtype.Int8,
 	reflect.Int16:         chtype.Int16,
