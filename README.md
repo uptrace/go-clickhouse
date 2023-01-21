@@ -37,17 +37,17 @@ Resources:
 
 **Read** (best of 3 runs):
 
-| Library                                                                                                          | Timing |
-| ---------------------------------------------------------------------------------------------------------------- | ------ |
-| [This library](example/benchmark/read-native/main.go)                                                            | 655ms  |
-| [ClickHouse/clickhouse-go](https://github.com/ClickHouse/clickhouse-go/blob/v2/benchmark/v2/read-native/main.go) | 849ms  |
+| Library                                                                                                            | Timing |
+| ------------------------------------------------------------------------------------------------------------------ | ------ |
+| [This library](example/benchmark/read-native/main.go)                                                              | 655ms  |
+| [ClickHouse/clickhouse-go](https://github.com/ClickHouse/clickhouse-go/blob/main/benchmark/v2/read-native/main.go) | 849ms  |
 
 **Write** (best of 3 runs):
 
-| Library                                                                                                                    | Timing |
-| -------------------------------------------------------------------------------------------------------------------------- | ------ |
-| [This library](example/benchmark/write-native-columnar/main.go)                                                            | 475ms  |
-| [ClickHouse/clickhouse-go](https://github.com/ClickHouse/clickhouse-go/blob/v2/benchmark/v2/write-native-columnar/main.go) | 881ms  |
+| Library                                                                                                                      | Timing |
+| ---------------------------------------------------------------------------------------------------------------------------- | ------ |
+| [This library](example/benchmark/write-native-columnar/main.go)                                                              | 475ms  |
+| [ClickHouse/clickhouse-go](https://github.com/ClickHouse/clickhouse-go/blob/main/benchmark/v2/write-native-columnar/main.go) | 881ms  |
 
 ## Installation
 
