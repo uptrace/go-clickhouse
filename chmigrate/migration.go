@@ -45,6 +45,7 @@ func NewSQLMigrationFunc(fsys fs.FS, name string) MigrationFunc {
 	}
 }
 
+// Exec reads and executes the SQL migration in the f.
 func Exec(ctx context.Context, db *ch.DB, f io.Reader) error {
 	scanner := bufio.NewScanner(f)
 	var queries []string
