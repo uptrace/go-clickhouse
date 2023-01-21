@@ -8,11 +8,13 @@ import (
 
 {{- range . }}
 
-func (c *{{ .CHType }}Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
+{{ if eq .Size 0 }} {{ continue }} {{ end }}
+
+func (c *{{ .Name }}Column) ReadFrom(rd *chproto.Reader, numRow int) error {
+	c.AllocForReading(numRow)
 
 	for i := range c.Column {
-		n, err := rd.{{ .CHType }}()
+		n, err := rd.{{ .Name }}()
 		if err != nil {
 			return err
 		}
@@ -22,9 +24,9 @@ func (c *{{ .CHType }}Column) ReadFrom(rd *chproto.Reader, numRow int) error {
 	return nil
 }
 
-func (c *{{ .CHType }}Column) WriteTo(wr *chproto.Writer) error {
+func (c *{{ .Name }}Column) WriteTo(wr *chproto.Writer) error {
 	for _, n := range c.Column {
-		wr.{{ .CHType }}(n)
+		wr.{{ .Name }}(n)
 	}
 	return nil
 }

@@ -40,7 +40,7 @@ func parseEnum(s string) *enumInfo {
 }
 
 func _parseEnum(chType string) (*enumInfo, error) {
-	s := enumType(chType)
+	s := chEnumType(chType)
 	if s == "" {
 		return nil, fmt.Errorf("can't parse enum type: %q", chType)
 	}

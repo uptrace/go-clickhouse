@@ -17,7 +17,7 @@ func (c *Int8Column) ReadFrom(rd *chproto.Reader, numRow int) error {
 		return nil
 	}
 
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	slice := *(*reflect.SliceHeader)(unsafe.Pointer(&c.Column))
 	slice.Len *= size
@@ -51,7 +51,7 @@ func (c *UInt8Column) ReadFrom(rd *chproto.Reader, numRow int) error {
 		return nil
 	}
 
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	slice := *(*reflect.SliceHeader)(unsafe.Pointer(&c.Column))
 	slice.Len *= size
@@ -85,7 +85,7 @@ func (c *Int16Column) ReadFrom(rd *chproto.Reader, numRow int) error {
 		return nil
 	}
 
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	slice := *(*reflect.SliceHeader)(unsafe.Pointer(&c.Column))
 	slice.Len *= size
@@ -119,7 +119,7 @@ func (c *UInt16Column) ReadFrom(rd *chproto.Reader, numRow int) error {
 		return nil
 	}
 
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	slice := *(*reflect.SliceHeader)(unsafe.Pointer(&c.Column))
 	slice.Len *= size
@@ -153,7 +153,7 @@ func (c *Int32Column) ReadFrom(rd *chproto.Reader, numRow int) error {
 		return nil
 	}
 
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	slice := *(*reflect.SliceHeader)(unsafe.Pointer(&c.Column))
 	slice.Len *= size
@@ -187,7 +187,7 @@ func (c *UInt32Column) ReadFrom(rd *chproto.Reader, numRow int) error {
 		return nil
 	}
 
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	slice := *(*reflect.SliceHeader)(unsafe.Pointer(&c.Column))
 	slice.Len *= size
@@ -221,7 +221,7 @@ func (c *Int64Column) ReadFrom(rd *chproto.Reader, numRow int) error {
 		return nil
 	}
 
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	slice := *(*reflect.SliceHeader)(unsafe.Pointer(&c.Column))
 	slice.Len *= size
@@ -255,7 +255,7 @@ func (c *UInt64Column) ReadFrom(rd *chproto.Reader, numRow int) error {
 		return nil
 	}
 
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	slice := *(*reflect.SliceHeader)(unsafe.Pointer(&c.Column))
 	slice.Len *= size
@@ -289,7 +289,7 @@ func (c *Float32Column) ReadFrom(rd *chproto.Reader, numRow int) error {
 		return nil
 	}
 
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	slice := *(*reflect.SliceHeader)(unsafe.Pointer(&c.Column))
 	slice.Len *= size
@@ -323,7 +323,7 @@ func (c *Float64Column) ReadFrom(rd *chproto.Reader, numRow int) error {
 		return nil
 	}
 
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	slice := *(*reflect.SliceHeader)(unsafe.Pointer(&c.Column))
 	slice.Len *= size

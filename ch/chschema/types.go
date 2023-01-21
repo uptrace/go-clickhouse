@@ -13,7 +13,32 @@ import (
 	"github.com/uptrace/go-clickhouse/ch/internal"
 )
 
-var chType = [...]string{
+var (
+	boolType    = reflect.TypeOf(false)
+	int8Type    = reflect.TypeOf(int8(0))
+	int16Type   = reflect.TypeOf(int16(0))
+	int32Type   = reflect.TypeOf(int32(0))
+	int64Type   = reflect.TypeOf(int64(0))
+	uint8Type   = reflect.TypeOf(uint8(0))
+	uint16Type  = reflect.TypeOf(uint16(0))
+	uint32Type  = reflect.TypeOf(uint32(0))
+	uint64Type  = reflect.TypeOf(uint64(0))
+	float32Type = reflect.TypeOf(float32(0))
+	float64Type = reflect.TypeOf(float64(0))
+
+	stringType      = reflect.TypeOf("")
+	bytesType       = reflect.TypeOf((*[]byte)(nil)).Elem()
+	uuidType        = reflect.TypeOf((*UUID)(nil)).Elem()
+	timeType        = reflect.TypeOf((*time.Time)(nil)).Elem()
+	ipType          = reflect.TypeOf((*net.IP)(nil)).Elem()
+	ipNetType       = reflect.TypeOf((*net.IPNet)(nil)).Elem()
+	bfloat16MapType = reflect.TypeOf((*bfloat16.Map)(nil)).Elem()
+
+	sliceUint64Type  = reflect.TypeOf((*[]uint64)(nil)).Elem()
+	sliceFloat32Type = reflect.TypeOf((*[]float32)(nil)).Elem()
+)
+
+var chTypes = [...]string{
 	reflect.Bool:          chtype.UInt8,
 	reflect.Int:           chtype.Int64,
 	reflect.Int8:          chtype.Int8,
@@ -42,152 +67,16 @@ var chType = [...]string{
 	reflect.UnsafePointer: "",
 }
 
-type NewColumnFunc func(typ reflect.Type, chType string, numRow int) Columnar
+type NewColumnFunc func() Columnar
 
-var kindToColumn = [...]NewColumnFunc{
-	reflect.Bool:          NewBoolColumn,
-	reflect.Int:           NewInt64Column,
-	reflect.Int8:          NewInt8Column,
-	reflect.Int16:         NewInt16Column,
-	reflect.Int32:         NewInt32Column,
-	reflect.Int64:         NewInt64Column,
-	reflect.Uint:          NewUInt64Column,
-	reflect.Uint8:         NewUInt8Column,
-	reflect.Uint16:        NewUInt16Column,
-	reflect.Uint32:        NewUInt32Column,
-	reflect.Uint64:        NewUInt64Column,
-	reflect.Uintptr:       nil,
-	reflect.Float32:       NewFloat32Column,
-	reflect.Float64:       NewFloat64Column,
-	reflect.Complex64:     nil,
-	reflect.Complex128:    nil,
-	reflect.Array:         nil,
-	reflect.Chan:          nil,
-	reflect.Func:          nil,
-	reflect.Interface:     nil,
-	reflect.Map:           NewJSONColumn,
-	reflect.Ptr:           nil,
-	reflect.Slice:         nil,
-	reflect.String:        NewStringColumn,
-	reflect.Struct:        NewJSONColumn,
-	reflect.UnsafePointer: nil,
+func NewColumn(chType string, typ reflect.Type) Columnar {
+	col := ColumnFactory(chType, typ)()
+	col.Init(chType)
+	return col
 }
 
-// keep in sync with clickhouseType
-func ColumnFactory(typ reflect.Type, chType string) NewColumnFunc {
-	if chType == chtype.Any {
-		return nil
-	}
-
-	if s := lowCardinalityType(chType); s != "" {
-		switch s {
-		case chtype.String:
-			return NewLCStringColumn
-		}
-		panic(fmt.Errorf("got %s, wanted LowCardinality(String)", chType))
-	}
-
-	if s := enumType(chType); s != "" {
-		return NewEnumColumn
-	}
-	if isDateTime64Type(chType) {
-		return NewDateTime64Column
-	}
-
-	if strings.HasPrefix(chType, "SimpleAggregateFunction(") {
-		chType = chSubType(chType, "SimpleAggregateFunction(")
-	} else if s := dateTimeType(chType); s != "" {
-		chType = s
-	} else if funcName, _ := aggFuncNameAndType(chType); funcName != "" {
-		switch funcName {
-		case "quantileBFloat16", "quantilesBFloat16":
-			return NewBFloat16HistColumn
-		default:
-			panic(fmt.Errorf("unsupported ClickHouse type: %s", chType))
-		}
-	}
-
-	switch typ {
-	case timeType:
-		switch chType {
-		case chtype.DateTime:
-			return NewDateTimeColumn
-		case chtype.Date:
-			return NewDateColumn
-		case chtype.Int64:
-			return NewTimeColumn
-		}
-	case ipType:
-		return NewIPColumn
-	}
-
-	kind := typ.Kind()
-
-	switch kind {
-	case reflect.Ptr:
-		if typ.Elem().Kind() == reflect.Struct {
-			return NewJSONColumn
-		}
-		return NullableNewColumnFunc(ColumnFactory(typ.Elem(), nullableType(chType)))
-	case reflect.Slice:
-		switch elem := typ.Elem(); elem.Kind() {
-		case reflect.Ptr:
-			if elem.Elem().Kind() == reflect.Struct {
-				return NewJSONColumn
-			}
-		case reflect.Int64:
-			return NewInt64ArrayColumn
-		case reflect.Uint64:
-			return NewUint64ArrayColumn
-		case reflect.Float64:
-			return NewFloat64ArrayColumn
-		case reflect.Uint8:
-			if chType == chtype.String {
-				return NewBytesColumn
-			}
-		case reflect.String:
-			return NewStringArrayColumn
-		case reflect.Struct:
-			if elem != timeType {
-				return NewJSONColumn
-			}
-		}
-
-		return NewGenericArrayColumn
-	case reflect.Array:
-		if isUUID(typ) {
-			return NewUUIDColumn
-		}
-	case reflect.Interface:
-		return columnFromCHType(chType)
-	}
-
+func ColumnFactory(chType string, typ reflect.Type) NewColumnFunc {
 	switch chType {
-	case chtype.DateTime:
-		switch typ {
-		case uint32Type:
-			return NewUInt32Column
-		case int64Type:
-			return NewInt64TimeColumn
-		default:
-			return NewDateTimeColumn
-		}
-	}
-
-	fn := kindToColumn[kind]
-	if fn != nil {
-		return fn
-	}
-
-	panic(fmt.Errorf("unsupported go_type=%q ch_type=%q", typ.String(), chType))
-}
-
-func columnFromCHType(chType string) NewColumnFunc {
-	switch chType {
-	case chtype.String:
-		return NewStringColumn
-	case chtype.UUID:
-		return NewUUIDColumn
 	case chtype.Int8:
 		return NewInt8Column
 	case chtype.Int16:
@@ -208,108 +97,125 @@ func columnFromCHType(chType string) NewColumnFunc {
 		return NewFloat32Column
 	case chtype.Float64:
 		return NewFloat64Column
+
+	case chtype.String:
+		if typ == bytesType {
+			return NewBytesColumn
+		}
+		return NewStringColumn
+	case "LowCardinality(String)":
+		return NewLCStringColumn
+	case chtype.Bool:
+		return NewBoolColumn
+	case chtype.UUID:
+		return NewUUIDColumn
+	case chtype.IPv6:
+		return NewIPColumn
+
 	case chtype.DateTime:
 		return NewDateTimeColumn
 	case chtype.DateTime64:
 		return NewDateTime64Column
 	case chtype.Date:
 		return NewDateColumn
-	case chtype.IPv6:
-		return NewIPColumn
-	default:
+
+	case "Array(Int8)":
+		return NewArrayInt8Column
+	case "Array(UInt8)":
+		return NewArrayUInt8Column
+	case "Array(Int16)":
+		return NewArrayInt16Column
+	case "Array(UInt16)":
+		return NewArrayUInt16Column
+	case "Array(Int32)":
+		return NewArrayInt32Column
+	case "Array(UInt32)":
+		return NewArrayUInt32Column
+	case "Array(Int64)":
+		return NewArrayInt64Column
+	case "Array(UInt64)":
+		return NewArrayUInt64Column
+	case "Array(Float32)":
+		return NewArrayFloat32Column
+	case "Array(Float64)":
+		return NewArrayFloat64Column
+
+	case "Array(String)":
+		return NewArrayStringColumn
+	case "Array(LowCardinality(String))":
+		return NewArrayLCStringColumn
+	case "Array(DateTime)":
+		return NewArrayDateTimeColumn
+
+	case "Array(Array(String))":
+		return NewArrayArrayStringColumn
+	case chtype.Any:
 		return nil
 	}
-}
 
-var (
-	boolType    = reflect.TypeOf(false)
-	int8Type    = reflect.TypeOf(int8(0))
-	int16Type   = reflect.TypeOf(int16(0))
-	int32Type   = reflect.TypeOf(int32(0))
-	int64Type   = reflect.TypeOf(int64(0))
-	uint8Type   = reflect.TypeOf(uint8(0))
-	uint16Type  = reflect.TypeOf(uint16(0))
-	uint32Type  = reflect.TypeOf(uint32(0))
-	uint64Type  = reflect.TypeOf(uint64(0))
-	float32Type = reflect.TypeOf(float32(0))
-	float64Type = reflect.TypeOf(float64(0))
-
-	stringType      = reflect.TypeOf("")
-	bytesType       = reflect.TypeOf((*[]byte)(nil)).Elem()
-	uuidType        = reflect.TypeOf((*UUID)(nil)).Elem()
-	timeType        = reflect.TypeOf((*time.Time)(nil)).Elem()
-	ipType          = reflect.TypeOf((*net.IP)(nil)).Elem()
-	ipNetType       = reflect.TypeOf((*net.IPNet)(nil)).Elem()
-	bfloat16MapType = reflect.TypeOf((*bfloat16.Map)(nil)).Elem()
-
-	int64SliceType   = reflect.TypeOf((*[]int64)(nil)).Elem()
-	uint64SliceType  = reflect.TypeOf((*[]uint64)(nil)).Elem()
-	float32SliceType = reflect.TypeOf((*[]float32)(nil)).Elem()
-	float64SliceType = reflect.TypeOf((*[]float64)(nil)).Elem()
-	stringSliceType  = reflect.TypeOf((*[]string)(nil)).Elem()
-)
-
-func goType(chType string) reflect.Type {
-	switch chType {
-	case chtype.Int8:
-		return int8Type
-	case chtype.Int32:
-		return int32Type
-	case chtype.Int64:
-		return int64Type
-	case chtype.UInt8:
-		return uint8Type
-	case chtype.UInt16:
-		return uint16Type
-	case chtype.UInt32:
-		return uint32Type
-	case chtype.UInt64:
-		return uint64Type
-	case chtype.Float32:
-		return float32Type
-	case chtype.Float64:
-		return float64Type
-	case chtype.String:
-		return stringType
-	case chtype.UUID:
-		return uuidType
-	case chtype.DateTime:
-		return timeType
-	case chtype.Date:
-		return timeType
-	case chtype.IPv6:
-		return ipType
-	default:
+	if chType := chEnumType(chType); chType != "" {
+		return NewEnumColumn
 	}
-
-	if s := chArrayElemType(chType); s != "" {
-		return reflect.SliceOf(goType(s))
-	}
-	if s := lowCardinalityType(chType); s != "" {
-		return goType(s)
-	}
-	if s := enumType(chType); s != "" {
-		return stringType
-	}
-	if s := dateTimeType(chType); s != "" {
-		return timeType
+	if chType := chArrayElemType(chType); chType != "" {
+		if chType := chEnumType(chType); chType != "" {
+			return NewArrayEnumColumn
+		}
 	}
 	if isDateTime64Type(chType) {
-		return timeType
+		return NewDateTime64Column
 	}
-	if s := nullableType(chType); s != "" {
-		return reflect.PtrTo(goType(s))
+	if chType := chDateTimeType(chType); chType != "" {
+		return ColumnFactory(chType, typ)
 	}
-	if _, funcType := aggFuncNameAndType(chType); funcType != "" {
-		return goType(funcType)
+	if chType := chNullableType(chType); chType != "" {
+		if typ != nil {
+			typ = typ.Elem()
+		}
+		return NewNullableColumnFunc(ColumnFactory(chType, typ))
 	}
 
-	panic(fmt.Errorf("unsupported ClickHouse type=%q", chType))
+	if chType := chSimpleAggFunc(chType); chType != "" {
+		return ColumnFactory(chType, typ)
+	}
+
+	if funcName, _ := aggFuncNameAndType(chType); funcName != "" {
+		switch funcName {
+		case "quantileBFloat16", "quantilesBFloat16":
+			return NewBFloat16HistColumn
+		default:
+			panic(fmt.Errorf("unsupported ClickHouse type: %s", chType))
+		}
+	}
+
+	if typ == nil {
+		panic(fmt.Errorf("unsupported ClickHouse column: %s", chType))
+	}
+
+	kind := typ.Kind()
+
+	switch kind {
+	case reflect.Ptr:
+		if typ.Elem().Kind() == reflect.Struct {
+			return NewJSONColumn
+		}
+		return NewNullableColumnFunc(ColumnFactory(chNullableType(chType), typ.Elem()))
+	case reflect.Slice:
+		switch elem := typ.Elem(); elem.Kind() {
+		case reflect.Ptr:
+			if elem.Elem().Kind() == reflect.Struct {
+				return NewJSONColumn
+			}
+		case reflect.Struct:
+			if elem != timeType {
+				return NewJSONColumn
+			}
+		}
+	}
+
+	panic(fmt.Errorf("unsupported ClickHouse column: %s", chType))
 }
 
-// clickhouseType returns ClickHouse type for the given Go type.
-// Keep in sync with ColumnFactory.
-func clickhouseType(typ reflect.Type) string {
+func chType(typ reflect.Type) string {
 	switch typ {
 	case timeType:
 		return chtype.DateTime
@@ -323,7 +229,7 @@ func clickhouseType(typ reflect.Type) string {
 		if typ.Elem().Kind() == reflect.Struct {
 			return chtype.String
 		}
-		return fmt.Sprintf("Nullable(%s)", clickhouseType(typ.Elem()))
+		return fmt.Sprintf("Nullable(%s)", chType(typ.Elem()))
 	case reflect.Slice:
 		switch elem := typ.Elem(); elem.Kind() {
 		case reflect.Ptr:
@@ -338,14 +244,14 @@ func clickhouseType(typ reflect.Type) string {
 			return chtype.String // []byte
 		}
 
-		return "Array(" + clickhouseType(typ.Elem()) + ")"
+		return "Array(" + chType(typ.Elem()) + ")"
 	case reflect.Array:
 		if isUUID(typ) {
 			return chtype.UUID
 		}
 	}
 
-	if s := chType[kind]; s != "" {
+	if s := chTypes[kind]; s != "" {
 		return s
 	}
 
@@ -353,6 +259,13 @@ func clickhouseType(typ reflect.Type) string {
 }
 
 func chArrayElemType(s string) string {
+	if s := chSubType(s, "SimpleAggregateFunction("); s != "" {
+		if i := strings.Index(s, ", "); i >= 0 {
+			s = s[i+2:]
+		}
+		return chSubType(s, "Array(")
+	}
+
 	s = chSubType(s, "Array(")
 	if s == "" {
 		return ""
@@ -371,15 +284,23 @@ func chArrayElemType(s string) string {
 	return s
 }
 
-func lowCardinalityType(s string) string {
-	return chSubType(s, "LowCardinality(")
-}
-
-func enumType(s string) string {
+func chEnumType(s string) string {
 	return chSubType(s, "Enum8(")
 }
 
-func dateTimeType(s string) string {
+func chSimpleAggFunc(s string) string {
+	s = chSubType(s, "SimpleAggregateFunction(")
+	if s == "" {
+		return ""
+	}
+	i := strings.Index(s, ", ")
+	if i == -1 {
+		return ""
+	}
+	return s[i+2:]
+}
+
+func chDateTimeType(s string) string {
 	s = chSubType(s, "DateTime(")
 	if s == "" {
 		return ""
@@ -406,7 +327,7 @@ func parseDateTime64Prec(s string) int {
 	return prec
 }
 
-func nullableType(s string) string {
+func chNullableType(s string) string {
 	return chSubType(s, "Nullable(")
 }
 

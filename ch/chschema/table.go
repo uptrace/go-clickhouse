@@ -154,7 +154,7 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 			}
 		}
 		if f.NewColumn == nil {
-			f.NewColumn = ColumnFactory(f.Type, f.CHType)
+			f.NewColumn = ColumnFactory(f.CHType, f.Type)
 		}
 	}
 }
@@ -211,7 +211,7 @@ func (t *Table) newField(f reflect.StructField, index []int, tag tagparser.Tag) 
 		field.CHType = s
 		field.setFlag(customTypeFlag)
 	} else {
-		field.CHType = clickhouseType(f.Type)
+		field.CHType = chType(f.Type)
 	}
 
 	if tag.HasOption("lc") {
@@ -251,7 +251,7 @@ func (t *Table) addField(field *Field) {
 	t.FieldMap[field.CHName] = field
 }
 
-func (t *Table) NewColumn(colName, colType string, numRow int) *Column {
+func (t *Table) NewColumn(colName, colType string) *Column {
 	field, ok := t.FieldMap[colName]
 	if !ok {
 		internal.Logger.Printf("ch: %s has no column=%q", t, colName)
@@ -259,22 +259,20 @@ func (t *Table) NewColumn(colName, colType string, numRow int) *Column {
 	}
 
 	if colType != field.CHType {
-		if field.CHType != chtype.Any && false {
-			internal.Logger.Printf("got column type %q, but %s.%s has type %q",
-				colType, t.Type.Name(), field.GoName, field.CHType)
-		}
-
 		return &Column{
 			Name:     colName,
 			Type:     colType,
-			Columnar: ColumnFactory(field.Type, colType)(field.Type, colType, numRow),
+			Columnar: NewColumn(colType, field.Type),
 		}
 	}
+
+	col := field.NewColumn()
+	col.Init(field.CHType)
 
 	return &Column{
 		Name:     colName,
 		Type:     field.CHType,
-		Columnar: field.NewColumn(field.Type, field.CHType, numRow),
+		Columnar: col,
 	}
 }
 

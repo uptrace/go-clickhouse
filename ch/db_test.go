@@ -314,30 +314,6 @@ func TestInvalidType(t *testing.T) {
 	require.Equal(t, []float64{}, dest.Numbers)
 }
 
-type Event struct {
-	ch.CHModel `ch:"goch_events,partition:toYYYYMM(created_at)"`
-
-	ID        uint64
-	Name      string `ch:",lc"`
-	Count     uint32
-	Keys      []string `ch:",lc"`
-	Values    [][]string
-	Kind      string    `ch:"type:Enum8('invalid' = 0, 'hello' = 1, 'world' = 2)"`
-	CreatedAt time.Time `ch:",pk"`
-}
-
-type EventColumnar struct {
-	ch.CHModel `ch:"goch_events,columnar"`
-
-	ID        []uint64
-	Name      []string `ch:",lc"`
-	Count     []uint32
-	Keys      [][]string `ch:"type:Array(LowCardinality(String))"`
-	Values    [][][]string
-	Kind      []string `ch:"type:Enum8('invalid' = 0, 'hello' = 1, 'world' = 2)"`
-	CreatedAt []time.Time
-}
-
 func TestClickhouse(t *testing.T) {
 	ctx := context.Background()
 
@@ -374,6 +350,30 @@ func testWhereBytes(ctx context.Context, t *testing.T, db *ch.DB) {
 		Scan(ctx)
 	require.NoError(t, err)
 	require.Equal(t, data.Bytes, got.Bytes)
+}
+
+type Event struct {
+	ch.CHModel `ch:"goch_events,partition:toYYYYMM(created_at)"`
+
+	ID        uint64
+	Name      string `ch:",lc"`
+	Count     uint32
+	Keys      []string `ch:",lc"`
+	Values    [][]string
+	Kind      string    `ch:"type:Enum8('invalid' = 0, 'hello' = 1, 'world' = 2)"`
+	CreatedAt time.Time `ch:",pk"`
+}
+
+type EventColumnar struct {
+	ch.CHModel `ch:"goch_events,columnar"`
+
+	ID        []uint64
+	Name      []string `ch:",lc"`
+	Count     []uint32
+	Keys      [][]string `ch:"type:Array(LowCardinality(String))"`
+	Values    [][][]string
+	Kind      []string `ch:"type:Enum8('invalid' = 0, 'hello' = 1, 'world' = 2)"`
+	CreatedAt []time.Time
 }
 
 func TestORM(t *testing.T) {

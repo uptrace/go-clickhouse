@@ -7,7 +7,7 @@ import (
 )
 
 func (c *Int8Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	for i := range c.Column {
 		n, err := rd.Int8()
@@ -28,7 +28,7 @@ func (c *Int8Column) WriteTo(wr *chproto.Writer) error {
 }
 
 func (c *UInt8Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	for i := range c.Column {
 		n, err := rd.UInt8()
@@ -49,7 +49,7 @@ func (c *UInt8Column) WriteTo(wr *chproto.Writer) error {
 }
 
 func (c *Int16Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	for i := range c.Column {
 		n, err := rd.Int16()
@@ -70,7 +70,7 @@ func (c *Int16Column) WriteTo(wr *chproto.Writer) error {
 }
 
 func (c *UInt16Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	for i := range c.Column {
 		n, err := rd.UInt16()
@@ -91,7 +91,7 @@ func (c *UInt16Column) WriteTo(wr *chproto.Writer) error {
 }
 
 func (c *Int32Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	for i := range c.Column {
 		n, err := rd.Int32()
@@ -112,7 +112,7 @@ func (c *Int32Column) WriteTo(wr *chproto.Writer) error {
 }
 
 func (c *UInt32Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	for i := range c.Column {
 		n, err := rd.UInt32()
@@ -133,7 +133,7 @@ func (c *UInt32Column) WriteTo(wr *chproto.Writer) error {
 }
 
 func (c *Int64Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	for i := range c.Column {
 		n, err := rd.Int64()
@@ -154,7 +154,7 @@ func (c *Int64Column) WriteTo(wr *chproto.Writer) error {
 }
 
 func (c *UInt64Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	for i := range c.Column {
 		n, err := rd.UInt64()
@@ -175,7 +175,7 @@ func (c *UInt64Column) WriteTo(wr *chproto.Writer) error {
 }
 
 func (c *Float32Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	for i := range c.Column {
 		n, err := rd.Float32()
@@ -196,7 +196,7 @@ func (c *Float32Column) WriteTo(wr *chproto.Writer) error {
 }
 
 func (c *Float64Column) ReadFrom(rd *chproto.Reader, numRow int) error {
-	c.Alloc(numRow)
+	c.AllocForReading(numRow)
 
 	for i := range c.Column {
 		n, err := rd.Float64()
