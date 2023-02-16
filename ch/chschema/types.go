@@ -146,9 +146,37 @@ func ColumnFactory(chType string, typ reflect.Type) NewColumnFunc {
 		return NewArrayLCStringColumn
 	case "Array(DateTime)":
 		return NewArrayDateTimeColumn
+	case "Array(Bool)":
+		return NewArrayBoolColumn
+
+	case "Array(Array(Int8))":
+		return NewArrayArrayInt8Column
+	case "Array(Array(UInt8))":
+		return NewArrayArrayUInt8Column
+	case "Array(Array(Int16))":
+		return NewArrayArrayInt16Column
+	case "Array(Array(UInt16))":
+		return NewArrayArrayUInt16Column
+	case "Array(Array(Int32))":
+		return NewArrayArrayInt32Column
+	case "Array(Array(UInt32))":
+		return NewArrayArrayUInt32Column
+	case "Array(Array(Int64))":
+		return NewArrayArrayInt64Column
+	case "Array(Array(UInt64))":
+		return NewArrayArrayUInt64Column
+	case "Array(Array(Float32))":
+		return NewArrayArrayFloat32Column
+	case "Array(Array(Float64))":
+		return NewArrayArrayFloat64Column
 
 	case "Array(Array(String))":
 		return NewArrayArrayStringColumn
+	case "Array(Array(DateTime))":
+		return NewArrayArrayDateTimeColumn
+	case "Array(Array(Bool))":
+		return NewArrayArrayStringColumn
+
 	case chtype.Any:
 		return nil
 	}
