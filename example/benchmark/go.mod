@@ -6,7 +6,7 @@ replace github.com/uptrace/go-clickhouse => ../..
 
 replace github.com/uptrace/go-clickhouse/chdebug => ../../chdebug
 
-require github.com/uptrace/go-clickhouse v0.3.0
+require github.com/uptrace/go-clickhouse v0.3.1
 
 require (
 	github.com/codemodus/kace v0.5.1 // indirect
