@@ -322,6 +322,7 @@ func TestClickhouse(t *testing.T) {
 
 	tests := []func(ctx context.Context, t *testing.T, db *ch.DB){
 		testWhereBytes,
+		testMapStringString,
 	}
 	for _, fn := range tests {
 		t.Run(funcName(fn), func(t *testing.T) {
@@ -350,6 +351,10 @@ func testWhereBytes(ctx context.Context, t *testing.T, db *ch.DB) {
 		Scan(ctx)
 	require.NoError(t, err)
 	require.Equal(t, data.Bytes, got.Bytes)
+}
+
+func testMapStringString(ctx context.Context, t *testing.T, db *ch.DB) {
+	// TODO: add test
 }
 
 type Event struct {
