@@ -48,7 +48,7 @@ PACKAGE_DIRS=$(find . -mindepth 1 -type f -name 'go.mod' -exec dirname {} \; \
 for dir in $PACKAGE_DIRS
 do
     printf "${dir}: go get -u && go mod tidy -compat=1.18\n"
-    (cd ${dir} && go get -u && go mod tidy -compat=1.18)
+    (cd ${dir} && go mod tidy -compat=1.18)
 done
 
 for dir in $PACKAGE_DIRS
