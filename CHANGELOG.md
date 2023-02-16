@@ -1,3 +1,31 @@
+## 0.3.1 (2023-02-16)
+
+
+### Bug Fixes
+
+* change rollback to always record migrations ([43a65a0](https://github.com/uptrace/go-clickhouse/commit/43a65a02e4ab92bceb846674092bce1a1097bafe))
+* continue working with non UTC timezone ([033c413](https://github.com/uptrace/go-clickhouse/commit/033c41395a3e7cbbaa25fddc127a1e626a0032b5))
+* **migrate:** upping was applying zero migrations ([e80d6d2](https://github.com/uptrace/go-clickhouse/commit/e80d6d288b98bcb415e63e31314c0fd1077af668))
+* move FINAL modifier to the right place ([#52](https://github.com/uptrace/go-clickhouse/issues/52)) ([0f4c068](https://github.com/uptrace/go-clickhouse/commit/0f4c06861f4d2bf5687063a3b52cbf0c3d3b5c4d))
+
+
+### Features
+
+* add bfloat16 support ([510b9ca](https://github.com/uptrace/go-clickhouse/commit/510b9caca8b64e62f7a7b12c283be2fcb2761cc5))
+* add proper Rows implementation and some optimizations ([658ad14](https://github.com/uptrace/go-clickhouse/commit/658ad14fc0f97a2e51e3a113ea7ae0fd77eb2795))
+* add queries to create/drop views ([b73c8fa](https://github.com/uptrace/go-clickhouse/commit/b73c8fabf8b3292d987803fadd18744872862f53))
+* add Raw ([1e8ca47](https://github.com/uptrace/go-clickhouse/commit/1e8ca4767fa9a025f87595d95837d87feada4671))
+* add support for DateTime64 ([c1e00ef](https://github.com/uptrace/go-clickhouse/commit/c1e00ef235a2ebfeebd2bdec52dde9c56ae27544))
+* add WithAutoCreateDatabase option ([8bf4958](https://github.com/uptrace/go-clickhouse/commit/8bf4958230da026b140f47650c6b78b733160e60))
+* allow disabling compression for benchmarks ([ef26067](https://github.com/uptrace/go-clickhouse/commit/ef260678ec2acc3fb2c540f8941c4b288d915cdf))
+* **chmigrate:** add WithReplicated option ([988091e](https://github.com/uptrace/go-clickhouse/commit/988091e532f120f08738f28fb8c620e086d97c41))
+* close idle connections after 30 minutes ([99f247b](https://github.com/uptrace/go-clickhouse/commit/99f247ba5e188995fe8ddb39a3c54764efb98245))
+* enable opentelemetry support in protocol ([76504b2](https://github.com/uptrace/go-clickhouse/commit/76504b27784c509a39885a00750fbfc1eee0d8cc))
+* initial commit ([092a2db](https://github.com/uptrace/go-clickhouse/commit/092a2dbf28ca070bd6d6cc3426ecbc1d9bc02c6e))
+* **migrate:** added option to only mark migration up/down as applied on success ([f559e06](https://github.com/uptrace/go-clickhouse/commit/f559e06009e8fc263fa79cf99f692522a71f61ff))
+
+
+
 # [0.3.0](https://github.com/uptrace/go-clickhouse/compare/v0.2.9...v0.3.0) (2023-01-21)
 
 

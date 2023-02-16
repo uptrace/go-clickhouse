@@ -10,7 +10,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0
 	github.com/pierrec/lz4/v4 v4.1.17
 	github.com/stretchr/testify v1.8.1
-	github.com/uptrace/go-clickhouse/chdebug v0.3.0
+	github.com/uptrace/go-clickhouse/chdebug v0.3.1
 	go.opentelemetry.io/otel/trace v1.13.0
 	golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb
 )
