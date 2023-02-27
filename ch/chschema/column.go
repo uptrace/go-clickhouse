@@ -2,6 +2,7 @@ package chschema
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -122,6 +123,37 @@ func (c *ColumnOf[T]) ConvertAssign(idx int, dest reflect.Value) error {
 
 //------------------------------------------------------------------------------
 
+func convertAssignDriverValue(col any, v reflect.Value) bool {
+	var ret reflect.Value
+
+	if _, ok := v.Interface().(sql.Scanner); !ok {
+		if !v.CanAddr() {
+			return false
+		}
+		if _, ok := v.Addr().Interface().(sql.Scanner); !ok {
+			return false
+		}
+
+		ret = reflect.New(v.Type())
+		if err := ret.Interface().(sql.Scanner).Scan(col); err != nil {
+			return false
+		}
+
+		v.Set(ret.Elem())
+		return true
+	}
+
+	ret = reflect.New(v.Type().Elem())
+	if err := ret.Interface().(sql.Scanner).Scan(col); err != nil {
+		return false
+	}
+
+	v.Set(ret)
+	return true
+}
+
+//------------------------------------------------------------------------------
+
 type NumericColumnOf[T constraints.Integer | constraints.Float] struct {
 	ColumnOf[T]
 }
@@ -135,7 +167,11 @@ func (c NumericColumnOf[T]) ConvertAssign(idx int, v reflect.Value) error {
 	case reflect.Float32, reflect.Float64:
 		v.SetFloat(float64(c.Column[idx]))
 	default:
-		v.Set(reflect.ValueOf(c.Column[idx]))
+		if !convertAssignDriverValue(c.Column[idx], v) {
+			v.Set(reflect.ValueOf(c.Column[idx]))
+			return nil
+		}
+		return nil
 	}
 	return nil
 }
@@ -165,7 +201,10 @@ func (c StringColumn) ConvertAssign(idx int, v reflect.Value) error {
 		dec.UseNumber()
 		return dec.Decode(v.Addr().Interface())
 	default:
-		v.Set(reflect.ValueOf(c.Column[idx]))
+		if !convertAssignDriverValue(c.Column[idx], v) {
+			// v.Set(reflect.ValueOf(c.Column[idx]))
+			return nil
+		}
 		return nil
 	}
 	return fmt.Errorf("ch: can't scan %s into %s", "string", v.Type())
