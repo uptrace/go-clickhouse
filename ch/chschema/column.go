@@ -112,11 +112,40 @@ func (c ColumnOf[T]) Slice(s, e int) any {
 	return c.Column[s:e]
 }
 
+func (c *ColumnOf[T]) appendSliceColumn(v reflect.Value) {
+	colElemType := reflect.TypeOf(c.Column).Elem().Elem()
+	col := reflect.MakeSlice(reflect.SliceOf(colElemType), 0, v.Len())
+	for i := 0; i < v.Len(); i++ {
+		col = reflect.Append(col, v.Index(i).Convert(colElemType))
+	}
+	c.Column = append(c.Column, col.Interface().(T))
+}
+
 func (c *ColumnOf[T]) AppendValue(v reflect.Value) {
+	if reflect.TypeOf(c.Column).Elem().Kind() == reflect.Slice && v.Kind() == reflect.Slice {
+		c.appendSliceColumn(v)
+		return
+	}
 	c.Column = append(c.Column, v.Interface().(T))
 }
 
+func (c *ColumnOf[T]) convertSliceColumn(slice T, destSlice reflect.Value) {
+	sliceValue := reflect.ValueOf(slice)
+	elemType := destSlice.Type().Elem()
+
+	ret := reflect.MakeSlice(reflect.SliceOf(elemType), 0, sliceValue.Len())
+	for i := 0; i < sliceValue.Len(); i++ {
+		ret = reflect.Append(ret, sliceValue.Index(i).Convert(elemType))
+	}
+
+	destSlice.Set(ret)
+}
+
 func (c *ColumnOf[T]) ConvertAssign(idx int, dest reflect.Value) error {
+	if reflect.TypeOf(c.Column).Elem().Kind() == reflect.Slice && dest.Kind() == reflect.Slice {
+		c.convertSliceColumn(c.Column[idx], dest)
+		return nil
+	}
 	dest.Set(reflect.ValueOf(c.Column[idx]))
 	return nil
 }
