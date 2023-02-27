@@ -1,11 +1,38 @@
 package chschema
 
 import (
+	"database/sql/driver"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/uptrace/go-clickhouse/ch/chproto"
 )
+
+func getDriverValue(v reflect.Value) driver.Value {
+	if v.Kind() == reflect.Pointer && v.IsNil() {
+		return nil
+	}
+
+	dv, ok := v.Interface().(driver.Valuer)
+	if !ok {
+		if !v.CanAddr() {
+			return nil
+		}
+		if dv, ok = v.Addr().Interface().(driver.Valuer); !ok {
+			return nil
+		}
+	}
+
+	value, err := dv.Value()
+	if err != nil {
+		return nil
+	}
+
+	return value
+}
+
+//------------------------------------------------------------------------------
 
 type Int8Column struct {
 	NumericColumnOf[int8]
@@ -1396,7 +1423,29 @@ func (c *UInt64Column) Type() reflect.Type {
 }
 
 func (c *UInt64Column) AppendValue(v reflect.Value) {
-	c.Column = append(c.Column, uint64(v.Uint()))
+	switch v.Kind() {
+	case reflect.Uint, reflect.Uintptr, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		c.Column = append(c.Column, v.Uint())
+	case reflect.String:
+		i, err := strconv.ParseInt(v.String(), 10, 64)
+		if err != nil {
+			return
+		}
+		c.Column = append(c.Column, uint64(i))
+	case reflect.Pointer:
+		if v.IsNil() {
+			c.Column = append(c.Column, 0)
+			return
+		}
+		c.AppendValue(v.Elem())
+	default:
+		value := getDriverValue(v)
+		if value != nil {
+			c.AppendValue(reflect.ValueOf(value))
+			return
+		}
+		c.Column = append(c.Column, v.Uint())
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -2201,7 +2250,24 @@ func (c *StringColumn) Type() reflect.Type {
 }
 
 func (c *StringColumn) AppendValue(v reflect.Value) {
-	c.Column = append(c.Column, string(v.String()))
+	if v.Kind() == reflect.Pointer && v.IsNil() {
+		c.Column = append(c.Column, "")
+		return
+	}
+
+	switch vi := v.Interface().(type) {
+	case string:
+		c.Column = append(c.Column, vi)
+	case []byte:
+		c.Column = append(c.Column, string(vi))
+	default:
+		value := getDriverValue(v)
+		if value != nil {
+			c.AppendValue(reflect.ValueOf(value))
+			return
+		}
+		c.Column = append(c.Column, v.String())
+	}
 }
 
 func (c *StringColumn) ReadFrom(rd *chproto.Reader, numRow int) error {
