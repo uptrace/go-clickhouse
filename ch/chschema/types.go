@@ -93,6 +93,8 @@ func ColumnFactory(chType string, typ reflect.Type) NewColumnFunc {
 		return NewUInt32Column
 	case chtype.UInt64:
 		return NewUInt64Column
+	case chtype.UInt256:
+		return NewUInt256Column
 	case chtype.Float32:
 		return NewFloat32Column
 	case chtype.Float64:

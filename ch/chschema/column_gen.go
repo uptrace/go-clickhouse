@@ -2,6 +2,8 @@ package chschema
 
 import (
 	"database/sql/driver"
+	"fmt"
+	"math/big"
 	"reflect"
 	"strconv"
 	"time"
@@ -1446,6 +1448,93 @@ func (c *UInt64Column) AppendValue(v reflect.Value) {
 		}
 		c.Column = append(c.Column, v.Uint())
 	}
+}
+
+//------------------------------------------------------------------------------
+
+type UInt256Column struct {
+	ColumnOf[*big.Int]
+}
+
+var _ Columnar = (*UInt256Column)(nil)
+
+func NewUInt256Column() Columnar {
+	return new(UInt256Column)
+}
+
+var _UInt256Type = reflect.TypeOf((*big.Int)(nil)).Elem()
+
+const u256sz = 256 / 8
+
+func (c *UInt256Column) Type() reflect.Type {
+	return _UInt256Type
+}
+
+func (c *UInt256Column) AppendValue(v reflect.Value) {
+	switch v.Kind() {
+	case reflect.Uint, reflect.Uintptr, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		c.Column = append(c.Column, new(big.Int).SetUint64(v.Uint()))
+	case reflect.String:
+		i, ok := new(big.Int).SetString(v.String(), 10)
+		if !ok {
+			return
+		}
+		c.Column = append(c.Column, i)
+	case reflect.Slice:
+		ba, ok := v.Interface().([]byte)
+		if !ok {
+			return
+		}
+		c.Column = append(c.Column, new(big.Int).SetBytes(ba))
+	case reflect.Pointer:
+		if v.IsNil() {
+			c.Column = append(c.Column, new(big.Int))
+			return
+		}
+		c.AppendValue(v.Elem())
+	default:
+		value := getDriverValue(v)
+		if value != nil {
+			c.AppendValue(reflect.ValueOf(value))
+			return
+		}
+	}
+}
+
+func (c *UInt256Column) ReadFrom(rd *chproto.Reader, numRow int) error {
+	c.AllocForReading(numRow)
+
+	for it := range c.Column {
+		b := make([]byte, u256sz, u256sz)
+		n, err := rd.Read(b)
+		if err != nil {
+			return err
+		}
+		if n != u256sz {
+			return fmt.Errorf("expected read bytes %d, got %d", u256sz, n)
+		}
+		for i := 0; i < len(b)/2; i++ {
+			b[i], b[len(b)-i-1] = b[len(b)-i-1], b[i]
+		}
+		c.Column[it] = new(big.Int).SetBytes(b)
+	}
+
+	return nil
+}
+
+func (c *UInt256Column) WriteTo(wr *chproto.Writer) error {
+	for _, n := range c.Column {
+		if n.BitLen() > 256 {
+			return fmt.Errorf("%s has bigger len %d than 256", n, n.BitLen())
+		}
+		b := make([]byte, u256sz, u256sz)
+		b = n.FillBytes(b)
+		for i := 0; i < len(b)/2; i++ {
+			b[i], b[len(b)-i-1] = b[len(b)-i-1], b[i]
+		}
+		wr.Write(b)
+	}
+	return nil
 }
 
 //------------------------------------------------------------------------------

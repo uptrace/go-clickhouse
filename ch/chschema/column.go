@@ -241,6 +241,27 @@ func (c StringColumn) ConvertAssign(idx int, v reflect.Value) error {
 
 //------------------------------------------------------------------------------
 
+func (c *UInt256Column) ConvertAssign(idx int, v reflect.Value) error {
+	switch v.Kind() {
+	case reflect.String:
+		v.SetString(c.Column[idx].String())
+		return nil
+	case reflect.Slice:
+		if v.Type() == bytesType {
+			v.SetBytes(internal.Bytes(string(c.Column[idx].Bytes())))
+			return nil
+		}
+	default:
+		if !convertAssignDriverValue(c.Column[idx].String(), v) {
+			return fmt.Errorf("ch: convertAssign UInt256 %x", c.Column[idx])
+		}
+		return nil
+	}
+	return fmt.Errorf("ch: can't scan %s into %s", "string", v.Type())
+}
+
+//------------------------------------------------------------------------------
+
 type UUID [16]byte
 
 // TODO: rework to use []byte
