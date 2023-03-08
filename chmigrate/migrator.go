@@ -33,6 +33,12 @@ func WithReplicated(on bool) MigratorOption {
 	}
 }
 
+func WithOnCluster(cluster string) MigratorOption {
+	return func(m *Migrator) {
+		m.onCluster = cluster
+	}
+}
+
 // WithMarkAppliedOnSuccess sets the migrator to only mark migrations as applied/unapplied
 // when their up/down is successful
 func WithMarkAppliedOnSuccess(enabled bool) MigratorOption {
@@ -50,6 +56,7 @@ type Migrator struct {
 	table                string
 	locksTable           string
 	replicated           bool
+	onCluster            string
 	markAppliedOnSuccess bool
 }
 
@@ -109,6 +116,7 @@ func (m *Migrator) Init(ctx context.Context) error {
 			return q.Engine("CollapsingMergeTree(sign)")
 		}).
 		ModelTableExpr(m.table).
+		OnCluster(m.onCluster).
 		IfNotExists().
 		Exec(ctx); err != nil {
 		return err
@@ -122,6 +130,7 @@ func (m *Migrator) Init(ctx context.Context) error {
 			return q.Engine("MergeTree")
 		}).
 		ModelTableExpr(m.locksTable).
+		OnCluster(m.onCluster).
 		IfNotExists().
 		Exec(ctx); err != nil {
 		return err
@@ -133,6 +142,7 @@ func (m *Migrator) Reset(ctx context.Context) error {
 	if _, err := m.db.NewDropTable().
 		Model((*Migration)(nil)).
 		ModelTableExpr(m.table).
+		OnCluster(m.onCluster).
 		IfExists().
 		Exec(ctx); err != nil {
 		return err
@@ -140,6 +150,7 @@ func (m *Migrator) Reset(ctx context.Context) error {
 	if _, err := m.db.NewDropTable().
 		Model((*migrationLock)(nil)).
 		ModelTableExpr(m.locksTable).
+		OnCluster(m.onCluster).
 		IfExists().
 		Exec(ctx); err != nil {
 		return err

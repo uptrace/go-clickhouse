@@ -12,6 +12,7 @@ type CreateTableQuery struct {
 	baseQuery
 
 	ifNotExists bool
+	onCluster   chschema.QueryWithArgs
 	engine      chschema.QueryWithArgs
 	ttl         chschema.QueryWithArgs
 	partition   chschema.QueryWithArgs
@@ -68,6 +69,11 @@ func (q *CreateTableQuery) IfNotExists() *CreateTableQuery {
 	return q
 }
 
+func (q *CreateTableQuery) OnCluster(query string, args ...any) *CreateTableQuery {
+	q.onCluster = chschema.SafeQuery(query, args)
+	return q
+}
+
 func (q *CreateTableQuery) Engine(query string, args ...any) *CreateTableQuery {
 	q.engine = chschema.SafeQuery(query, args)
 	return q
@@ -117,6 +123,14 @@ func (q *CreateTableQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []
 	b, err = q.appendFirstTable(fmter, b)
 	if err != nil {
 		return nil, err
+	}
+
+	if !q.onCluster.IsEmpty() {
+		b = append(b, " ON CLUSTER "...)
+		b, err = q.onCluster.AppendQuery(fmter, b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	b = append(b, " ("...)
