@@ -11,7 +11,8 @@ import (
 type DropTableQuery struct {
 	baseQuery
 
-	ifExists bool
+	ifExists  bool
+	onCluster chschema.QueryWithArgs
 }
 
 var _ Query = (*DropTableQuery)(nil)
@@ -56,6 +57,11 @@ func (q *DropTableQuery) IfExists() *DropTableQuery {
 	return q
 }
 
+func (q *DropTableQuery) OnCluster(query string, args ...any) *DropTableQuery {
+	q.onCluster = chschema.SafeQuery(query, args)
+	return q
+}
+
 //------------------------------------------------------------------------------
 
 func (q *DropTableQuery) Operation() string {
@@ -75,6 +81,14 @@ func (q *DropTableQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []by
 	b, err = q.appendTables(fmter, b)
 	if err != nil {
 		return nil, err
+	}
+
+	if !q.onCluster.IsEmpty() {
+		b = append(b, " ON CLUSTER "...)
+		b, err = q.onCluster.AppendQuery(fmter, b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return b, nil
