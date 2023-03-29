@@ -1,6 +1,7 @@
 package chschema
 
 import (
+	"reflect"
 	"strings"
 
 	"github.com/uptrace/go-clickhouse/ch/internal"
@@ -162,4 +163,44 @@ func SafeQueryWithSep(query string, args []any, sep string) QueryWithSep {
 		QueryWithArgs: SafeQuery(query, args),
 		Sep:           sep,
 	}
+}
+
+//------------------------------------------------------------------------------
+
+type ArrayValue struct {
+	v reflect.Value
+}
+
+func Array(vi interface{}) *ArrayValue {
+	return &ArrayValue{
+		v: reflect.ValueOf(vi),
+	}
+}
+
+var _ QueryAppender = (*ArrayValue)(nil)
+
+func (a *ArrayValue) AppendQuery(fmter Formatter, b []byte) ([]byte, error) {
+	if !a.v.IsValid() || a.v.Len() == 0 {
+		b = append(b, "[]"...)
+		return b, nil
+	}
+
+	typ := a.v.Type()
+	elemType := typ.Elem()
+	appendElem := Appender(elemType)
+
+	b = append(b, '[')
+
+	ln := a.v.Len()
+	for i := 0; i < ln; i++ {
+		if i > 0 {
+			b = append(b, ',')
+		}
+		elem := a.v.Index(i)
+		b = appendElem(fmter, b, elem)
+	}
+
+	b = append(b, ']')
+
+	return b, nil
 }
