@@ -32,7 +32,7 @@ func (q *DropViewQuery) Model(model any) *DropViewQuery {
 	return q
 }
 
-func (q *DropViewQuery) WithQuery(fn func(*DropViewQuery) *DropViewQuery) *DropViewQuery {
+func (q *DropViewQuery) Apply(fn func(*DropViewQuery) *DropViewQuery) *DropViewQuery {
 	return fn(q)
 }
 

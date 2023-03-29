@@ -109,7 +109,7 @@ func (m *Migrator) migrationsWithStatus(ctx context.Context) (MigrationSlice, in
 func (m *Migrator) Init(ctx context.Context) error {
 	if _, err := m.db.NewCreateTable().
 		Model((*Migration)(nil)).
-		WithQuery(func(q *ch.CreateTableQuery) *ch.CreateTableQuery {
+		Apply(func(q *ch.CreateTableQuery) *ch.CreateTableQuery {
 			if m.replicated {
 				return q.Engine("ReplicatedCollapsingMergeTree(sign)")
 			}
@@ -123,7 +123,7 @@ func (m *Migrator) Init(ctx context.Context) error {
 	}
 	if _, err := m.db.NewCreateTable().
 		Model((*migrationLock)(nil)).
-		WithQuery(func(q *ch.CreateTableQuery) *ch.CreateTableQuery {
+		Apply(func(q *ch.CreateTableQuery) *ch.CreateTableQuery {
 			if m.replicated {
 				return q.Engine("ReplicatedMergeTree")
 			}

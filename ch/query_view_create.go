@@ -36,7 +36,7 @@ func (q *CreateViewQuery) Model(model any) *CreateViewQuery {
 	return q
 }
 
-func (q *CreateViewQuery) WithQuery(fn func(*CreateViewQuery) *CreateViewQuery) *CreateViewQuery {
+func (q *CreateViewQuery) Apply(fn func(*CreateViewQuery) *CreateViewQuery) *CreateViewQuery {
 	return fn(q)
 }
 
