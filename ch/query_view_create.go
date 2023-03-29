@@ -9,13 +9,14 @@ import (
 )
 
 type CreateViewQuery struct {
-	whereBaseQuery
+	baseQuery
 
 	materialized bool
 	ifNotExists  bool
 	view         chschema.QueryWithArgs
 	cluster      chschema.QueryWithArgs
 	to           chschema.QueryWithArgs
+	where        whereQuery
 	group        []chschema.QueryWithArgs
 	order        chschema.QueryWithArgs
 }
@@ -24,10 +25,8 @@ var _ Query = (*CreateViewQuery)(nil)
 
 func NewCreateViewQuery(db *DB) *CreateViewQuery {
 	return &CreateViewQuery{
-		whereBaseQuery: whereBaseQuery{
-			baseQuery: baseQuery{
-				db: db,
-			},
+		baseQuery: baseQuery{
+			db: db,
 		},
 	}
 }
@@ -124,28 +123,30 @@ func (q *CreateViewQuery) IfNotExists() *CreateViewQuery {
 //------------------------------------------------------------------------------
 
 func (q *CreateViewQuery) Where(query string, args ...any) *CreateViewQuery {
-	q.addWhere(chschema.SafeQueryWithSep(query, args, " AND "))
+	q.where.addFilter(chschema.SafeQueryWithSep(query, args, " AND "))
 	return q
 }
 
 func (q *CreateViewQuery) WhereOr(query string, args ...any) *CreateViewQuery {
-	q.addWhere(chschema.SafeQueryWithSep(query, args, " OR "))
+	q.where.addFilter(chschema.SafeQueryWithSep(query, args, " OR "))
 	return q
 }
 
 func (q *CreateViewQuery) WhereGroup(sep string, fn func(*CreateViewQuery) *CreateViewQuery) *CreateViewQuery {
-	saved := q.where
-	q.where = nil
+	saved := q.where.filters
+	q.where.filters = nil
 
 	q = fn(q)
 
-	where := q.where
-	q.where = saved
+	filters := q.where.filters
+	q.where.filters = saved
 
-	q.addWhereGroup(sep, where)
+	q.where.addGroup(sep, filters)
 
 	return q
 }
+
+//------------------------------------------------------------------------------
 
 func (q *CreateViewQuery) Group(columns ...string) *CreateViewQuery {
 	for _, column := range columns {
@@ -224,9 +225,12 @@ func (q *CreateViewQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []b
 		return nil, err
 	}
 
-	b, err = q.appendWhere(fmter, b)
-	if err != nil {
-		return nil, err
+	if len(q.where.filters) > 0 {
+		b = append(b, " WHERE "...)
+		b, err = appendWhere(fmter, b, q.where.filters)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(q.group) > 0 {

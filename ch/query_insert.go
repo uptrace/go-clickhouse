@@ -10,17 +10,16 @@ import (
 )
 
 type InsertQuery struct {
-	whereBaseQuery
+	baseQuery
+	where whereQuery
 }
 
 var _ Query = (*InsertQuery)(nil)
 
 func NewInsertQuery(db *DB) *InsertQuery {
 	return &InsertQuery{
-		whereBaseQuery: whereBaseQuery{
-			baseQuery: baseQuery{
-				db: db,
-			},
+		baseQuery: baseQuery{
+			db: db,
 		},
 	}
 }
@@ -76,12 +75,12 @@ func (q *InsertQuery) ExcludeColumn(columns ...string) *InsertQuery {
 //------------------------------------------------------------------------------
 
 func (q *InsertQuery) Where(query string, args ...any) *InsertQuery {
-	q.addWhere(chschema.SafeQueryWithSep(query, args, " AND "))
+	q.where.addFilter(chschema.SafeQueryWithSep(query, args, " AND "))
 	return q
 }
 
 func (q *InsertQuery) WhereOr(query string, args ...any) *InsertQuery {
-	q.addWhere(chschema.SafeQueryWithSep(query, args, " OR "))
+	q.where.addFilter(chschema.SafeQueryWithSep(query, args, " OR "))
 	return q
 }
 
@@ -152,10 +151,9 @@ func (q *InsertQuery) appendValues(
 		return nil, err
 	}
 
-	if len(q.where) > 0 {
+	if len(q.where.filters) > 0 {
 		b = append(b, " WHERE "...)
-
-		b, err = appendWhere(fmter, b, q.where)
+		b, err = appendWhere(fmter, b, q.where.filters)
 		if err != nil {
 			return nil, err
 		}

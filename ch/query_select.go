@@ -13,11 +13,13 @@ import (
 )
 
 type SelectQuery struct {
-	whereBaseQuery
+	baseQuery
 
 	sample     chschema.QueryWithArgs
 	distinctOn []chschema.QueryWithArgs
 	joins      []joinQuery
+	prewhere   whereQuery
+	where      whereQuery
 	group      []chschema.QueryWithArgs
 	having     []chschema.QueryWithArgs
 	order      []chschema.QueryWithArgs
@@ -30,12 +32,26 @@ var _ Query = (*SelectQuery)(nil)
 
 func NewSelectQuery(db *DB) *SelectQuery {
 	return &SelectQuery{
-		whereBaseQuery: whereBaseQuery{
-			baseQuery: baseQuery{
-				db: db,
-			},
+		baseQuery: baseQuery{
+			db: db,
 		},
 	}
+}
+
+func (q *SelectQuery) Clone() *SelectQuery {
+	clone := *q
+
+	clone.baseQuery = clone.baseQuery.clone()
+	clone.prewhere = clone.prewhere.clone()
+	clone.where = clone.where.clone()
+
+	clone.distinctOn = lazyClone(clone.distinctOn)
+	clone.joins = lazyClone(clone.joins)
+	clone.group = lazyClone(clone.group)
+	clone.having = lazyClone(clone.having)
+	clone.order = lazyClone(clone.order)
+
+	return &clone
 }
 
 func (q *SelectQuery) Operation() string {
@@ -163,26 +179,52 @@ func (q *SelectQuery) joinOn(cond string, args []any, sep string) *SelectQuery {
 
 //------------------------------------------------------------------------------
 
+func (q *SelectQuery) Prewhere(query string, args ...any) *SelectQuery {
+	q.prewhere.addFilter(chschema.SafeQueryWithSep(query, args, " AND "))
+	return q
+}
+
+func (q *SelectQuery) PrewhereOr(query string, args ...any) *SelectQuery {
+	q.prewhere.addFilter(chschema.SafeQueryWithSep(query, args, " OR "))
+	return q
+}
+
+func (q *SelectQuery) PrewhereGroup(sep string, fn func(*SelectQuery) *SelectQuery) *SelectQuery {
+	saved := q.prewhere.filters
+	q.prewhere.filters = nil
+
+	q = fn(q)
+
+	filters := q.prewhere.filters
+	q.prewhere.filters = saved
+
+	q.prewhere.addGroup(sep, filters)
+
+	return q
+}
+
+//------------------------------------------------------------------------------
+
 func (q *SelectQuery) Where(query string, args ...any) *SelectQuery {
-	q.addWhere(chschema.SafeQueryWithSep(query, args, " AND "))
+	q.where.addFilter(chschema.SafeQueryWithSep(query, args, " AND "))
 	return q
 }
 
 func (q *SelectQuery) WhereOr(query string, args ...any) *SelectQuery {
-	q.addWhere(chschema.SafeQueryWithSep(query, args, " OR "))
+	q.where.addFilter(chschema.SafeQueryWithSep(query, args, " OR "))
 	return q
 }
 
 func (q *SelectQuery) WhereGroup(sep string, fn func(*SelectQuery) *SelectQuery) *SelectQuery {
-	saved := q.where
-	q.where = nil
+	saved := q.where.filters
+	q.where.filters = nil
 
 	q = fn(q)
 
-	where := q.where
-	q.where = saved
+	filters := q.where.filters
+	q.where.filters = saved
 
-	q.addWhereGroup(sep, where)
+	q.where.addGroup(sep, filters)
 
 	return q
 }
@@ -344,9 +386,19 @@ func (q *SelectQuery) appendQuery(
 		}
 	}
 
-	b, err = q.appendWhere(fmter, b)
-	if err != nil {
-		return nil, err
+	if len(q.prewhere.filters) > 0 {
+		b = append(b, " PREWHERE "...)
+		b, err = appendWhere(fmter, b, q.prewhere.filters)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if len(q.where.filters) > 0 {
+		b = append(b, " WHERE "...)
+		b, err = appendWhere(fmter, b, q.where.filters)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(q.group) > 0 {
