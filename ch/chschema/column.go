@@ -498,7 +498,7 @@ func (c *JSONColumn) WriteTo(wr *chproto.Writer) error {
 //------------------------------------------------------------------------------
 
 type BFloat16HistColumn struct {
-	ColumnOf[bfloat16.Map]
+	ColumnOf[map[bfloat16.T]uint64]
 }
 
 var _ Columnar = (*BFloat16HistColumn)(nil)
@@ -524,7 +524,7 @@ func (c *BFloat16HistColumn) ReadFrom(rd *chproto.Reader, numRow int) error {
 			return err
 		}
 
-		data := make(bfloat16.Map, n)
+		data := make(map[bfloat16.T]uint64, n)
 
 		for j := 0; j < int(n); j++ {
 			value, err := rd.UInt16()

@@ -4,15 +4,13 @@ import (
 	"math"
 )
 
-type Map map[T]uint64
-
 type T uint16
 
 func From(f float64) T {
-	return FromFloat32(float32(f))
+	return From32(float32(f))
 }
 
-func FromFloat32(f float32) T {
+func From32(f float32) T {
 	return T(math.Float32bits(f) >> 16)
 }
 

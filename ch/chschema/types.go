@@ -32,7 +32,7 @@ var (
 	timeType        = reflect.TypeOf((*time.Time)(nil)).Elem()
 	ipType          = reflect.TypeOf((*net.IP)(nil)).Elem()
 	ipNetType       = reflect.TypeOf((*net.IPNet)(nil)).Elem()
-	bfloat16MapType = reflect.TypeOf((*bfloat16.Map)(nil)).Elem()
+	bfloat16MapType = reflect.TypeOf((*map[bfloat16.T]uint64)(nil)).Elem()
 
 	sliceUint64Type  = reflect.TypeOf((*[]uint64)(nil)).Elem()
 	sliceFloat32Type = reflect.TypeOf((*[]float32)(nil)).Elem()
@@ -114,8 +114,6 @@ func ColumnFactory(chType string, typ reflect.Type) NewColumnFunc {
 
 	case chtype.DateTime:
 		return NewDateTimeColumn
-	case chtype.DateTime64:
-		return NewDateTime64Column
 	case chtype.Date:
 		return NewDateColumn
 
