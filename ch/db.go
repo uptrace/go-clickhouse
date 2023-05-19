@@ -130,10 +130,15 @@ func (db *DB) autoCreateDatabase() {
 	conf := db.conf.clone()
 	conf.Database = ""
 
+	query := "CREATE DATABASE IF NOT EXISTS ?"
+	if conf.Cluster != "" {
+		query += " ON CLUSTER ?"
+	}
+
 	tmp := newDB(conf)
 	defer tmp.Close()
 
-	if _, err := tmp.Exec("CREATE DATABASE IF NOT EXISTS ?", Ident(db.conf.Database)); err != nil {
+	if _, err := tmp.Exec(query, Ident(db.conf.Database), Ident(db.conf.Cluster)); err != nil {
 		internal.Logger.Printf("create database %q failed: %s", db.conf.Database, err)
 	}
 }
