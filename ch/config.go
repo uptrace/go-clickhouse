@@ -76,9 +76,9 @@ func defaultConfig() *Config {
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 10 * time.Second,
 
-		MaxRetries:      2,
-		MinRetryBackoff: 500 * time.Millisecond,
-		MaxRetryBackoff: time.Second,
+		MaxRetries:      3,
+		MinRetryBackoff: time.Millisecond,
+		MaxRetryBackoff: 3 * time.Second,
 	}
 	return conf
 }

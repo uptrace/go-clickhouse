@@ -272,9 +272,8 @@ func (db *DB) exec(ctx context.Context, query string) (*result, error) {
 	var lastErr error
 	for attempt := 0; attempt <= db.conf.MaxRetries; attempt++ {
 		if attempt > 0 {
-			lastErr = internal.Sleep(ctx, db.retryBackoff(attempt-1))
-			if lastErr != nil {
-				break
+			if err := internal.Sleep(ctx, db.retryBackoff()); err != nil {
+				return nil, err
 			}
 		}
 
@@ -338,9 +337,8 @@ func (db *DB) query(ctx context.Context, query string) (*blockIter, error) {
 
 	for attempt := 0; attempt <= db.conf.MaxRetries; attempt++ {
 		if attempt > 0 {
-			lastErr = internal.Sleep(ctx, db.retryBackoff(attempt-1))
-			if lastErr != nil {
-				break
+			if err := internal.Sleep(ctx, db.retryBackoff()); err != nil {
+				return nil, err
 			}
 		}
 
@@ -379,9 +377,8 @@ func (db *DB) insert(
 
 	for attempt := 0; attempt <= db.conf.MaxRetries; attempt++ {
 		if attempt > 0 {
-			lastErr = internal.Sleep(ctx, db.retryBackoff(attempt-1))
-			if lastErr != nil {
-				break
+			if err := internal.Sleep(ctx, db.retryBackoff()); err != nil {
+				return nil, err
 			}
 		}
 
@@ -489,22 +486,28 @@ func (db *DB) WithFormatter(fmter chschema.Formatter) *DB {
 
 func (db *DB) shouldRetry(err error) bool {
 	switch err {
-	case driver.ErrBadConn:
-		return true
 	case nil, context.Canceled, context.DeadlineExceeded:
 		return false
+	case driver.ErrBadConn:
+		return true
 	}
 
 	if err, ok := err.(*Error); ok {
 		// https://github.com/ClickHouse/ClickHouse/blob/master/src/Common/ErrorCodes.cpp
 		const (
 			timeoutExceeded            = 159
+			tooSlow                    = 160
 			tooManySimultaneousQueries = 202
 			memoryLimitExceeded        = 241
+			cannotDecompress           = 271
 		)
 
 		switch err.Code {
-		case timeoutExceeded, tooManySimultaneousQueries, memoryLimitExceeded:
+		case timeoutExceeded,
+			tooSlow,
+			tooManySimultaneousQueries,
+			memoryLimitExceeded,
+			cannotDecompress:
 			return true
 		}
 	}
@@ -512,9 +515,8 @@ func (db *DB) shouldRetry(err error) bool {
 	return false
 }
 
-func (db *DB) retryBackoff(attempt int) time.Duration {
-	return internal.RetryBackoff(
-		attempt, db.conf.MinRetryBackoff, db.conf.MaxRetryBackoff)
+func (db *DB) retryBackoff() time.Duration {
+	return internal.RetryBackoff(db.conf.MinRetryBackoff, db.conf.MaxRetryBackoff)
 }
 
 func (db *DB) FormatQuery(query string, args ...any) string {

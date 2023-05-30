@@ -70,34 +70,89 @@ func isBadConn(err error, allowTimeout bool) bool {
 
 //------------------------------------------------------------------------------
 
+type ListValues struct {
+	slice any
+}
+
+var _ chschema.QueryAppender = ListValues{}
+
+func List(slice any) ListValues {
+	return ListValues{
+		slice: slice,
+	}
+}
+
+func (in ListValues) AppendQuery(fmter chschema.Formatter, b []byte) (_ []byte, err error) {
+	v := reflect.ValueOf(in.slice)
+	if v.Kind() != reflect.Slice {
+		return nil, fmt.Errorf("ch: In(non-slice %T)", in.slice)
+	}
+
+	b = appendList(fmter, b, v)
+	return b, nil
+}
+
+//------------------------------------------------------------------------------
+
 type InValues struct {
-	slice reflect.Value
-	err   error
+	slice any
 }
 
 var _ chschema.QueryAppender = InValues{}
 
 func In(slice any) InValues {
-	v := reflect.ValueOf(slice)
-	if v.Kind() != reflect.Slice {
-		return InValues{
-			err: fmt.Errorf("ch: In(non-slice %T)", slice),
-		}
-	}
 	return InValues{
-		slice: v,
+		slice: slice,
 	}
 }
 
 func (in InValues) AppendQuery(fmter chschema.Formatter, b []byte) (_ []byte, err error) {
-	if in.err != nil {
-		return nil, in.err
+	v := reflect.ValueOf(in.slice)
+	if v.Kind() != reflect.Slice {
+		return nil, fmt.Errorf("ch: In(non-slice %T)", in.slice)
 	}
-	return appendIn(fmter, b, in.slice), nil
+
+	b = append(b, '(')
+	b = appendList(fmter, b, v)
+	b = append(b, ')')
+	return b, nil
 }
 
-func appendIn(fmter chschema.Formatter, b []byte, slice reflect.Value) []byte {
+//------------------------------------------------------------------------------
+
+type ArrayValues struct {
+	slice any
+}
+
+var _ chschema.QueryAppender = ArrayValues{}
+
+func Array(slice any) ArrayValues {
+	return ArrayValues{
+		slice: slice,
+	}
+}
+
+func (in ArrayValues) AppendQuery(fmter chschema.Formatter, b []byte) (_ []byte, err error) {
+	v := reflect.ValueOf(in.slice)
+	if v.Kind() != reflect.Slice {
+		return nil, fmt.Errorf("ch: Array(non-slice %T)", in.slice)
+	}
+
+	b = append(b, '[')
+	b = appendList(fmter, b, v)
+	b = append(b, ']')
+	return b, nil
+}
+
+//------------------------------------------------------------------------------
+
+func appendList(fmter chschema.Formatter, b []byte, slice reflect.Value) []byte {
 	sliceLen := slice.Len()
+
+	if sliceLen == 0 {
+		return append(b, "NULL"...)
+	}
+
 	for i := 0; i < sliceLen; i++ {
 		if i > 0 {
 			b = append(b, ", "...)
@@ -108,13 +163,7 @@ func appendIn(fmter chschema.Formatter, b []byte, slice reflect.Value) []byte {
 			elem = elem.Elem()
 		}
 
-		if elem.Kind() == reflect.Slice {
-			b = append(b, '(')
-			b = appendIn(fmter, b, elem)
-			b = append(b, ')')
-		} else {
-			b = chschema.AppendValue(fmter, b, elem)
-		}
+		b = chschema.AppendValue(fmter, b, elem)
 	}
 	return b
 }
