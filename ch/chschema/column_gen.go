@@ -2,6 +2,7 @@ package chschema
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -2349,13 +2350,23 @@ func (c *StringColumn) AppendValue(v reflect.Value) {
 		c.Column = append(c.Column, vi)
 	case []byte:
 		c.Column = append(c.Column, string(vi))
+	case json.RawMessage:
+		c.Column = append(c.Column, string(vi))
 	default:
 		value := getDriverValue(v)
 		if value != nil {
 			c.AppendValue(reflect.ValueOf(value))
 			return
 		}
-		c.Column = append(c.Column, v.String())
+		if v.Kind() == reflect.String {
+			c.Column = append(c.Column, v.String())
+			return
+		}
+		j, err := json.Marshal(vi)
+		if err != nil {
+			panic(err)
+		}
+		c.Column = append(c.Column, string(j))
 	}
 }
 

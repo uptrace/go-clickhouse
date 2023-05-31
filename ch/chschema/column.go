@@ -221,7 +221,7 @@ func (c StringColumn) ConvertAssign(idx int, v reflect.Value) error {
 		v.SetString(c.Column[idx])
 		return nil
 	case reflect.Slice:
-		if v.Type() == bytesType {
+		if v.Type() == bytesType || v.Type() == reflect.TypeOf((*json.RawMessage)(nil)).Elem() {
 			v.SetBytes(internal.Bytes(c.Column[idx]))
 			return nil
 		}
