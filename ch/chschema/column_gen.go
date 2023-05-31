@@ -2366,6 +2366,9 @@ func (c *StringColumn) AppendValue(v reflect.Value) {
 		if err != nil {
 			panic(err)
 		}
+		if string(j) == "null" {
+			j = nil
+		}
 		c.Column = append(c.Column, string(j))
 	}
 }
