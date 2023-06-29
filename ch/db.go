@@ -194,50 +194,14 @@ func (db *DB) _withConn(ctx context.Context, fn func(*chpool.Conn) error) error 
 		return err
 	}
 
-	var done chan struct{}
-
-	if ctxDone := ctx.Done(); ctxDone != nil {
-		done = make(chan struct{})
-		go func() {
-			select {
-			case <-done:
-				// fn has finished, skip cancel
-			case <-ctxDone:
-				db.cancelConn(ctx, cn)
-				// Signal end of conn use.
-				done <- struct{}{}
-			}
-		}()
-	}
+	var fnErr error
 
 	defer func() {
-		if done != nil {
-			select {
-			case <-done: // wait for cancel to finish request
-			case done <- struct{}{}: // signal fn finish, skip cancel goroutine
-			}
-		}
-		db.releaseConn(cn, err)
+		db.releaseConn(cn, fnErr)
 	}()
 
-	// err is used in releaseConn above
-	err = fn(cn)
-
-	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-		db.cancelConn(ctx, cn)
-	}
-
-	return err
-}
-
-func (db *DB) cancelConn(ctx context.Context, cn *chpool.Conn) {
-	if err := cn.WithWriter(ctx, db.conf.WriteTimeout, func(wr *chproto.Writer) {
-		writeCancel(wr)
-	}); err != nil {
-		internal.Logger.Printf("writeCancel failed: %s", err)
-	}
-
-	_ = cn.Close()
+	fnErr = fn(cn)
+	return fnErr
 }
 
 func (db *DB) Ping(ctx context.Context) error {

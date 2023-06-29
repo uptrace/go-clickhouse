@@ -85,13 +85,6 @@ func TestCHTimeout(t *testing.T) {
 		ctx, "SELECT sleepEachRow(0.01) from numbers(10000) settings max_block_size=10")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "i/o timeout")
-
-	require.Eventually(t, func() bool {
-		var num int
-		err := db.NewRaw("SELECT count() from system.processes").Scan(ctx, &num)
-		require.NoError(t, err)
-		return num == 1
-	}, time.Second, 100*time.Millisecond)
 }
 
 func TestDSNSetting(t *testing.T) {
