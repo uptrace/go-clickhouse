@@ -12,6 +12,11 @@ import (
 	"github.com/uptrace/go-clickhouse/ch/internal"
 )
 
+type union struct {
+	expr  string
+	query *SelectQuery
+}
+
 type SelectQuery struct {
 	baseQuery
 
@@ -26,6 +31,8 @@ type SelectQuery struct {
 	limit      int
 	offset     int
 	final      bool
+
+	union []union
 }
 
 var _ Query = (*SelectQuery)(nil)
@@ -147,6 +154,24 @@ func (q *SelectQuery) ColumnExpr(query string, args ...any) *SelectQuery {
 
 func (q *SelectQuery) ExcludeColumn(columns ...string) *SelectQuery {
 	q.excludeColumn(columns)
+	return q
+}
+
+///------------------------------------------------------------------------------
+
+func (q *SelectQuery) Union(other *SelectQuery) *SelectQuery {
+	return q.addUnion(" UNION ", other)
+}
+
+func (q *SelectQuery) UnionAll(other *SelectQuery) *SelectQuery {
+	return q.addUnion(" UNION ALL ", other)
+}
+
+func (q *SelectQuery) addUnion(expr string, other *SelectQuery) *SelectQuery {
+	q.union = append(q.union, union{
+		expr:  expr,
+		query: other,
+	})
 	return q
 }
 
@@ -329,6 +354,10 @@ func (q *SelectQuery) appendQuery(
 		b = append(b, `WITH "_count_wrapper" AS (`...)
 	}
 
+	if len(q.union) > 0 {
+		b = append(b, '(')
+	}
+
 	if len(q.with) > 0 {
 		b, err = q.appendWith(fmter, b)
 		if err != nil {
@@ -451,7 +480,23 @@ func (q *SelectQuery) appendQuery(
 			b = append(b, " OFFSET "...)
 			b = strconv.AppendInt(b, int64(q.offset), 10)
 		}
-	} else if cteCount {
+	}
+
+	if len(q.union) > 0 {
+		b = append(b, ')')
+
+		for _, u := range q.union {
+			b = append(b, u.expr...)
+			b = append(b, '(')
+			b, err = u.query.AppendQuery(fmter, b)
+			if err != nil {
+				return nil, err
+			}
+			b = append(b, ')')
+		}
+	}
+
+	if cteCount {
 		b = append(b, `) SELECT `...)
 		b = append(b, "count()"...)
 		b = append(b, ` FROM "_count_wrapper"`...)
