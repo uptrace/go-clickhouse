@@ -34,7 +34,7 @@ type FQN string
 var _ QueryAppender = (*FQN)(nil)
 
 func (s FQN) AppendQuery(fmter Formatter, b []byte) ([]byte, error) {
-	return fmter.AppendIdent(b, string(s)), nil
+	return fmter.AppendFQN(b, string(s)), nil
 }
 
 func AppendFQN(b []byte, field string) []byte {

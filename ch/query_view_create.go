@@ -14,7 +14,7 @@ type CreateViewQuery struct {
 	materialized bool
 	ifNotExists  bool
 	view         chschema.QueryWithArgs
-	cluster      chschema.QueryWithArgs
+	onCluster    chschema.QueryWithArgs
 	to           chschema.QueryWithArgs
 	where        whereQuery
 	group        []chschema.QueryWithArgs
@@ -53,12 +53,12 @@ func (q *CreateViewQuery) ViewExpr(query string, args ...any) *CreateViewQuery {
 }
 
 func (q *CreateViewQuery) OnCluster(cluster string) *CreateViewQuery {
-	q.cluster = chschema.UnsafeIdent(cluster)
+	q.onCluster = chschema.UnsafeIdent(cluster)
 	return q
 }
 
 func (q *CreateViewQuery) OnClusterExpr(query string, args ...any) *CreateViewQuery {
-	q.cluster = chschema.SafeQuery(query, args)
+	q.onCluster = chschema.SafeQuery(query, args)
 	return q
 }
 
@@ -197,9 +197,9 @@ func (q *CreateViewQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []b
 		return nil, err
 	}
 
-	if !q.cluster.IsEmpty() {
+	if !q.onCluster.IsEmpty() {
 		b = append(b, " ON CLUSTER "...)
-		b, err = q.cluster.AppendQuery(fmter, b)
+		b, err = q.onCluster.AppendQuery(fmter, b)
 		if err != nil {
 			return nil, err
 		}

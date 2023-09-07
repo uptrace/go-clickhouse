@@ -40,7 +40,7 @@ func WithOnCluster(cluster string) MigratorOption {
 }
 
 // WithMarkAppliedOnSuccess sets the migrator to only mark migrations as applied/unapplied
-// when their up/down is successful
+// when their up/down is successful.
 func WithMarkAppliedOnSuccess(enabled bool) MigratorOption {
 	return func(m *Migrator) {
 		m.markAppliedOnSuccess = enabled

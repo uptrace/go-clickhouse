@@ -57,8 +57,8 @@ func (q *DropTableQuery) IfExists() *DropTableQuery {
 	return q
 }
 
-func (q *DropTableQuery) OnCluster(query string, args ...any) *DropTableQuery {
-	q.onCluster = chschema.SafeQuery(query, args)
+func (q *DropTableQuery) OnCluster(cluster string) *DropTableQuery {
+	q.onCluster = chschema.UnsafeIdent(cluster)
 	return q
 }
 

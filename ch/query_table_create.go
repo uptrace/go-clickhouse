@@ -69,8 +69,8 @@ func (q *CreateTableQuery) IfNotExists() *CreateTableQuery {
 	return q
 }
 
-func (q *CreateTableQuery) OnCluster(query string, args ...any) *CreateTableQuery {
-	q.onCluster = chschema.SafeQuery(query, args)
+func (q *CreateTableQuery) OnCluster(cluster string) *CreateTableQuery {
+	q.onCluster = chschema.UnsafeIdent(cluster)
 	return q
 }
 
