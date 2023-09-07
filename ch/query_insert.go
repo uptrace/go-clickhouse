@@ -43,6 +43,11 @@ func (q *InsertQuery) TableExpr(query string, args ...any) *InsertQuery {
 	return q
 }
 
+func (q *InsertQuery) ModelTable(table string) *InsertQuery {
+	q.modelTableName = chschema.UnsafeIdent(table)
+	return q
+}
+
 func (q *InsertQuery) ModelTableExpr(query string, args ...any) *InsertQuery {
 	q.modelTableName = chschema.SafeQuery(query, args)
 	return q

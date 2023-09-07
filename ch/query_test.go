@@ -125,6 +125,15 @@ func TestQuery(t *testing.T) {
 			q2 := db.NewSelect().Model(new(Model))
 			return q1.UnionAll(q2)
 		},
+		func(db *ch.DB) chschema.QueryAppender {
+			return db.NewCreateTable().
+				Table("my-table_dist").
+				As("my-table").
+				Engine("Distributed(?, currentDatabase(), ?, rand())",
+					ch.Ident("my-cluster"), ch.Ident("my-table")).
+				OnCluster("my-cluster").
+				IfNotExists()
+		},
 	}
 
 	db := chDB()

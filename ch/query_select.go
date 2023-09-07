@@ -128,6 +128,11 @@ func (q *SelectQuery) TableExpr(query string, args ...any) *SelectQuery {
 	return q
 }
 
+func (q *SelectQuery) ModelTable(table string) *SelectQuery {
+	q.modelTableName = chschema.UnsafeIdent(table)
+	return q
+}
+
 func (q *SelectQuery) ModelTableExpr(query string, args ...any) *SelectQuery {
 	q.modelTableName = chschema.SafeQuery(query, args)
 	return q

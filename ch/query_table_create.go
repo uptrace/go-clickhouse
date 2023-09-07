@@ -12,6 +12,7 @@ type CreateTableQuery struct {
 	baseQuery
 
 	ifNotExists bool
+	as          chschema.QueryWithArgs
 	onCluster   chschema.QueryWithArgs
 	engine      chschema.QueryWithArgs
 	ttl         chschema.QueryWithArgs
@@ -52,8 +53,18 @@ func (q *CreateTableQuery) TableExpr(query string, args ...any) *CreateTableQuer
 	return q
 }
 
+func (q *CreateTableQuery) ModelTable(table string) *CreateTableQuery {
+	q.modelTableName = chschema.UnsafeIdent(table)
+	return q
+}
+
 func (q *CreateTableQuery) ModelTableExpr(query string, args ...any) *CreateTableQuery {
 	q.modelTableName = chschema.SafeQuery(query, args)
+	return q
+}
+
+func (q *CreateTableQuery) As(table string) *CreateTableQuery {
+	q.as = chschema.UnsafeIdent(table)
 	return q
 }
 
@@ -111,10 +122,6 @@ func (q *CreateTableQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []
 	if q.err != nil {
 		return nil, q.err
 	}
-	if q.table == nil {
-		return nil, errNilModel
-	}
-
 	b = append(b, "CREATE TABLE "...)
 	if q.ifNotExists {
 		b = append(b, "IF NOT EXISTS "...)
@@ -133,36 +140,46 @@ func (q *CreateTableQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []
 		}
 	}
 
-	b = append(b, " ("...)
-
-	for i, field := range q.table.Fields {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-
-		b = append(b, field.CHName...)
-		b = append(b, " "...)
-		b = append(b, field.CHType...)
-		if field.NotNull {
-			b = append(b, " NOT NULL"...)
-		}
-		if field.CHDefault != "" {
-			b = append(b, " DEFAULT "...)
-			b = append(b, field.CHDefault...)
-		}
-	}
-
-	for i, col := range q.columns {
-		if i > 0 || len(q.table.Fields) > 0 {
-			b = append(b, ", "...)
-		}
-		b, err = col.AppendQuery(fmter, b)
+	if !q.as.IsEmpty() {
+		b = append(b, " AS "...)
+		b, err = q.as.AppendQuery(fmter, b)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	b = append(b, ")"...)
+	if q.table != nil {
+		b = append(b, " ("...)
+
+		for i, field := range q.table.Fields {
+			if i > 0 {
+				b = append(b, ", "...)
+			}
+
+			b = append(b, field.CHName...)
+			b = append(b, " "...)
+			b = append(b, field.CHType...)
+			if field.NotNull {
+				b = append(b, " NOT NULL"...)
+			}
+			if field.CHDefault != "" {
+				b = append(b, " DEFAULT "...)
+				b = append(b, field.CHDefault...)
+			}
+		}
+
+		for i, col := range q.columns {
+			if i > 0 || len(q.table.Fields) > 0 {
+				b = append(b, ", "...)
+			}
+			b, err = col.AppendQuery(fmter, b)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		b = append(b, ")"...)
+	}
 
 	b = append(b, " Engine = "...)
 
@@ -189,17 +206,19 @@ func (q *CreateTableQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []
 			return nil, err
 		}
 		b = append(b, ')')
-	} else if len(q.table.PKs) > 0 {
-		b = append(b, " ORDER BY ("...)
-		for i, pk := range q.table.PKs {
-			if i > 0 {
-				b = append(b, ", "...)
+	} else if q.table != nil {
+		if len(q.table.PKs) > 0 {
+			b = append(b, " ORDER BY ("...)
+			for i, pk := range q.table.PKs {
+				if i > 0 {
+					b = append(b, ", "...)
+				}
+				b = append(b, pk.CHName...)
 			}
-			b = append(b, pk.CHName...)
+			b = append(b, ')')
+		} else if q.table.CHEngine == "" {
+			b = append(b, " ORDER BY tuple()"...)
 		}
-		b = append(b, ')')
-	} else if q.table.CHEngine == "" {
-		b = append(b, " ORDER BY tuple()"...)
 	}
 
 	if !q.ttl.IsZero() {
@@ -219,7 +238,7 @@ func (q *CreateTableQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []
 }
 
 func (q *CreateTableQuery) appendPartition(fmter chschema.Formatter, b []byte) ([]byte, error) {
-	if q.partition.IsZero() && q.table.CHPartition == "" {
+	if q.partition.IsZero() && (q.table == nil || q.table.CHPartition == "") {
 		return b, nil
 	}
 
