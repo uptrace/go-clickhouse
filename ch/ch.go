@@ -12,6 +12,7 @@ import (
 
 type (
 	Safe             = chschema.Safe
+	Name             = chschema.Name
 	Ident            = chschema.Ident
 	CHModel          = chschema.CHModel
 	AfterScanRowHook = chschema.AfterScanRowHook

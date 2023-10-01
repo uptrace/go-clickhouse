@@ -41,7 +41,7 @@ func TestAutoCreateDatabase(t *testing.T) {
 		db := ch.Connect()
 		defer db.Close()
 
-		_, err := db.Exec("DROP DATABASE IF EXISTS ?", ch.Ident(dbName))
+		_, err := db.Exec("DROP DATABASE IF EXISTS ?", ch.Name(dbName))
 		require.NoError(t, err)
 	}
 
@@ -160,7 +160,7 @@ func TestPlaceholder(t *testing.T) {
 	params := struct {
 		A     int
 		B     int
-		Alias ch.Ident
+		Alias ch.Name
 	}{
 		A:     1,
 		B:     2,

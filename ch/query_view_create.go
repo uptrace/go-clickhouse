@@ -43,7 +43,7 @@ func (q *CreateViewQuery) Apply(fn func(*CreateViewQuery) *CreateViewQuery) *Cre
 //------------------------------------------------------------------------------
 
 func (q *CreateViewQuery) View(view string) *CreateViewQuery {
-	q.view = chschema.UnsafeIdent(view)
+	q.view = chschema.UnsafeName(view)
 	return q
 }
 
@@ -53,7 +53,7 @@ func (q *CreateViewQuery) ViewExpr(query string, args ...any) *CreateViewQuery {
 }
 
 func (q *CreateViewQuery) OnCluster(cluster string) *CreateViewQuery {
-	q.onCluster = chschema.UnsafeIdent(cluster)
+	q.onCluster = chschema.UnsafeName(cluster)
 	return q
 }
 
@@ -63,7 +63,7 @@ func (q *CreateViewQuery) OnClusterExpr(query string, args ...any) *CreateViewQu
 }
 
 func (q *CreateViewQuery) To(to string) *CreateViewQuery {
-	q.to = chschema.UnsafeIdent(to)
+	q.to = chschema.UnsafeName(to)
 	return q
 }
 
@@ -74,7 +74,7 @@ func (q *CreateViewQuery) ToExpr(query string, args ...any) *CreateViewQuery {
 
 func (q *CreateViewQuery) Table(tables ...string) *CreateViewQuery {
 	for _, table := range tables {
-		q.addTable(chschema.UnsafeIdent(table))
+		q.addTable(chschema.UnsafeName(table))
 	}
 	return q
 }
@@ -93,7 +93,7 @@ func (q *CreateViewQuery) ModelTableExpr(query string, args ...any) *CreateViewQ
 
 func (q *CreateViewQuery) Column(columns ...string) *CreateViewQuery {
 	for _, column := range columns {
-		q.addColumn(chschema.UnsafeIdent(column))
+		q.addColumn(chschema.UnsafeName(column))
 	}
 	return q
 }
@@ -150,7 +150,7 @@ func (q *CreateViewQuery) WhereGroup(sep string, fn func(*CreateViewQuery) *Crea
 
 func (q *CreateViewQuery) Group(columns ...string) *CreateViewQuery {
 	for _, column := range columns {
-		q.group = append(q.group, chschema.UnsafeIdent(column))
+		q.group = append(q.group, chschema.UnsafeName(column))
 	}
 	return q
 }

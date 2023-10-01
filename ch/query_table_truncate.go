@@ -34,7 +34,7 @@ func (q *TruncateTableQuery) Model(model any) *TruncateTableQuery {
 
 func (q *TruncateTableQuery) Table(tables ...string) *TruncateTableQuery {
 	for _, table := range tables {
-		q.addTable(chschema.UnsafeIdent(table))
+		q.addTable(chschema.UnsafeName(table))
 	}
 	return q
 }

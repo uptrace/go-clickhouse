@@ -298,7 +298,7 @@ func (q *baseQuery) addColumn(column chschema.QueryWithArgs) {
 func (q *baseQuery) excludeColumn(columns []string) {
 	if q.columns == nil {
 		for _, f := range q.table.Fields {
-			q.columns = append(q.columns, chschema.UnsafeIdent(f.CHName))
+			q.columns = append(q.columns, chschema.UnsafeName(f.CHName))
 		}
 	}
 

@@ -44,7 +44,7 @@ func (q *DropViewQuery) IfExists() *DropViewQuery {
 }
 
 func (q *DropViewQuery) View(view string) *DropViewQuery {
-	q.view = chschema.UnsafeIdent(view)
+	q.view = chschema.UnsafeName(view)
 	return q
 }
 
@@ -54,7 +54,7 @@ func (q *DropViewQuery) ViewExpr(query string, args ...any) *DropViewQuery {
 }
 
 func (q *DropViewQuery) OnCluster(cluster string) *DropViewQuery {
-	q.onCluster = chschema.UnsafeIdent(cluster)
+	q.onCluster = chschema.UnsafeName(cluster)
 	return q
 }
 

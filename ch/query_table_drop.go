@@ -35,7 +35,7 @@ func (q *DropTableQuery) Model(model any) *DropTableQuery {
 
 func (q *DropTableQuery) Table(tables ...string) *DropTableQuery {
 	for _, table := range tables {
-		q.addTable(chschema.UnsafeIdent(table))
+		q.addTable(chschema.UnsafeName(table))
 	}
 	return q
 }
@@ -58,7 +58,7 @@ func (q *DropTableQuery) IfExists() *DropTableQuery {
 }
 
 func (q *DropTableQuery) OnCluster(cluster string) *DropTableQuery {
-	q.onCluster = chschema.UnsafeIdent(cluster)
+	q.onCluster = chschema.UnsafeName(cluster)
 	return q
 }
 

@@ -43,7 +43,7 @@ func (q *CreateTableQuery) Apply(fn func(*CreateTableQuery) *CreateTableQuery) *
 
 func (q *CreateTableQuery) Table(tables ...string) *CreateTableQuery {
 	for _, table := range tables {
-		q.addTable(chschema.UnsafeIdent(table))
+		q.addTable(chschema.UnsafeName(table))
 	}
 	return q
 }
@@ -54,7 +54,7 @@ func (q *CreateTableQuery) TableExpr(query string, args ...any) *CreateTableQuer
 }
 
 func (q *CreateTableQuery) ModelTable(table string) *CreateTableQuery {
-	q.modelTableName = chschema.UnsafeIdent(table)
+	q.modelTableName = chschema.UnsafeName(table)
 	return q
 }
 
@@ -64,7 +64,7 @@ func (q *CreateTableQuery) ModelTableExpr(query string, args ...any) *CreateTabl
 }
 
 func (q *CreateTableQuery) As(table string) *CreateTableQuery {
-	q.as = chschema.UnsafeIdent(table)
+	q.as = chschema.UnsafeName(table)
 	return q
 }
 
@@ -81,7 +81,7 @@ func (q *CreateTableQuery) IfNotExists() *CreateTableQuery {
 }
 
 func (q *CreateTableQuery) OnCluster(cluster string) *CreateTableQuery {
-	q.onCluster = chschema.UnsafeIdent(cluster)
+	q.onCluster = chschema.UnsafeName(cluster)
 	return q
 }
 

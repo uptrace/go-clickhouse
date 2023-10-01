@@ -27,12 +27,12 @@ func NewFormatter() Formatter {
 	return Formatter{}
 }
 
-func (f Formatter) AppendIdent(b []byte, ident string) []byte {
-	return AppendIdent(b, ident)
+func (f Formatter) AppendName(b []byte, ident string) []byte {
+	return AppendName(b, ident)
 }
 
-func (f Formatter) AppendFQN(b []byte, ident string) []byte {
-	return AppendFQN(b, ident)
+func (f Formatter) AppendIdent(b []byte, ident string) []byte {
+	return AppendIdent(b, ident)
 }
 
 func (f Formatter) WithArg(arg NamedArgAppender) Formatter {

@@ -33,7 +33,7 @@ func (q *InsertQuery) Model(model any) *InsertQuery {
 
 func (q *InsertQuery) Table(tables ...string) *InsertQuery {
 	for _, table := range tables {
-		q.addTable(chschema.UnsafeIdent(table))
+		q.addTable(chschema.UnsafeName(table))
 	}
 	return q
 }
@@ -44,7 +44,7 @@ func (q *InsertQuery) TableExpr(query string, args ...any) *InsertQuery {
 }
 
 func (q *InsertQuery) ModelTable(table string) *InsertQuery {
-	q.modelTableName = chschema.UnsafeIdent(table)
+	q.modelTableName = chschema.UnsafeName(table)
 	return q
 }
 
@@ -62,7 +62,7 @@ func (q *InsertQuery) Setting(query string, args ...any) *InsertQuery {
 
 func (q *InsertQuery) Column(columns ...string) *InsertQuery {
 	for _, column := range columns {
-		q.addColumn(chschema.UnsafeIdent(column))
+		q.addColumn(chschema.UnsafeName(column))
 	}
 	return q
 }

@@ -130,7 +130,7 @@ func TestQuery(t *testing.T) {
 				Table("my-table_dist").
 				As("my-table").
 				Engine("Distributed(?, currentDatabase(), ?, rand())",
-					ch.Ident("my-cluster"), ch.Ident("my-table")).
+					ch.Name("my-cluster"), ch.Name("my-table")).
 				OnCluster("my-cluster").
 				IfNotExists()
 		},

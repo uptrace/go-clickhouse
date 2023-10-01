@@ -138,7 +138,7 @@ func (db *DB) autoCreateDatabase() {
 	tmp := newDB(conf)
 	defer tmp.Close()
 
-	if _, err := tmp.Exec(query, Ident(db.conf.Database), Ident(db.conf.Cluster)); err != nil {
+	if _, err := tmp.Exec(query, Name(db.conf.Database), Name(db.conf.Cluster)); err != nil {
 		internal.Logger.Printf("create database %q failed: %s", db.conf.Database, err)
 	}
 }

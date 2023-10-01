@@ -117,7 +117,7 @@ func (q *SelectQuery) DistinctOn(query string, args ...any) *SelectQuery {
 
 func (q *SelectQuery) Table(tables ...string) *SelectQuery {
 	for _, table := range tables {
-		q.addTable(chschema.UnsafeIdent(table))
+		q.addTable(chschema.UnsafeName(table))
 	}
 	return q
 }
@@ -128,7 +128,7 @@ func (q *SelectQuery) TableExpr(query string, args ...any) *SelectQuery {
 }
 
 func (q *SelectQuery) ModelTable(table string) *SelectQuery {
-	q.modelTableName = chschema.UnsafeIdent(table)
+	q.modelTableName = chschema.UnsafeName(table)
 	return q
 }
 
@@ -146,7 +146,7 @@ func (q *SelectQuery) Sample(query string, args ...any) *SelectQuery {
 
 func (q *SelectQuery) Column(columns ...string) *SelectQuery {
 	for _, column := range columns {
-		q.addColumn(chschema.UnsafeIdent(column))
+		q.addColumn(chschema.UnsafeName(column))
 	}
 	return q
 }
@@ -262,7 +262,7 @@ func (q *SelectQuery) WhereGroup(sep string, fn func(*SelectQuery) *SelectQuery)
 
 func (q *SelectQuery) Group(columns ...string) *SelectQuery {
 	for _, column := range columns {
-		q.group = append(q.group, chschema.UnsafeIdent(column))
+		q.group = append(q.group, chschema.UnsafeName(column))
 	}
 	return q
 }
@@ -285,7 +285,7 @@ func (q *SelectQuery) Order(orders ...string) *SelectQuery {
 
 		index := strings.IndexByte(order, ' ')
 		if index == -1 {
-			q.order = append(q.order, chschema.UnsafeIdent(order))
+			q.order = append(q.order, chschema.UnsafeName(order))
 			continue
 		}
 
@@ -296,11 +296,11 @@ func (q *SelectQuery) Order(orders ...string) *SelectQuery {
 		case "ASC", "DESC", "ASC NULLS FIRST", "DESC NULLS FIRST",
 			"ASC NULLS LAST", "DESC NULLS LAST":
 			q.order = append(q.order, chschema.SafeQuery("? ?", []any{
-				Ident(field),
+				Name(field),
 				Safe(sort),
 			}))
 		default:
-			q.order = append(q.order, chschema.UnsafeIdent(order))
+			q.order = append(q.order, chschema.UnsafeName(order))
 		}
 	}
 	return q
@@ -522,7 +522,7 @@ func (q *SelectQuery) appendWith(fmter chschema.Formatter, b []byte) (_ []byte, 
 		}
 
 		if with.cte {
-			b = chschema.AppendIdent(b, with.name)
+			b = chschema.AppendName(b, with.name)
 			b = append(b, " AS "...)
 			b = append(b, "("...)
 		}
@@ -536,7 +536,7 @@ func (q *SelectQuery) appendWith(fmter chschema.Formatter, b []byte) (_ []byte, 
 			b = append(b, ")"...)
 		} else {
 			b = append(b, " AS "...)
-			b = chschema.AppendIdent(b, with.name)
+			b = chschema.AppendName(b, with.name)
 		}
 	}
 	b = append(b, ' ')
