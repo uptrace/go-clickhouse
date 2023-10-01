@@ -325,6 +325,7 @@ func (db *DB) _query(ctx context.Context, query string) (*blockIter, error) {
 		db.writeQuery(ctx, cn, wr, query)
 		db.writeBlock(ctx, wr, nil)
 	}); err != nil {
+		db.releaseConn(cn, err)
 		return nil, err
 	}
 

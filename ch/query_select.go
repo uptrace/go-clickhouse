@@ -12,11 +12,6 @@ import (
 	"github.com/uptrace/go-clickhouse/ch/internal"
 )
 
-type union struct {
-	expr  string
-	query *SelectQuery
-}
-
 type SelectQuery struct {
 	baseQuery
 
@@ -31,8 +26,12 @@ type SelectQuery struct {
 	limit      int
 	offset     int
 	final      bool
+	union      []union
+}
 
-	union []union
+type union struct {
+	expr  string
+	query *SelectQuery
 }
 
 var _ Query = (*SelectQuery)(nil)
@@ -162,7 +161,7 @@ func (q *SelectQuery) ExcludeColumn(columns ...string) *SelectQuery {
 	return q
 }
 
-///------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 func (q *SelectQuery) Union(other *SelectQuery) *SelectQuery {
 	return q.addUnion(" UNION ", other)
