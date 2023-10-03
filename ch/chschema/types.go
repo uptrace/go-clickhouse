@@ -36,6 +36,8 @@ var (
 
 	sliceUint64Type  = reflect.TypeOf((*[]uint64)(nil)).Elem()
 	sliceFloat32Type = reflect.TypeOf((*[]float32)(nil)).Elem()
+
+	mapStringStringType = reflect.TypeOf((*map[string]string)(nil)).Elem()
 )
 
 var chTypes = [...]string{
@@ -174,6 +176,9 @@ func ColumnFactory(chType string, typ reflect.Type) NewColumnFunc {
 		return NewArrayArrayDateTimeColumn
 	case "Array(Array(Bool))":
 		return NewArrayArrayStringColumn
+
+	case "Map(String, String)":
+		return NewMapStringStringColumn
 
 	case chtype.Any:
 		return nil

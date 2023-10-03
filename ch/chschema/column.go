@@ -204,8 +204,7 @@ func (c *UUIDColumn) ReadFrom(rd *chproto.Reader, numRow int) error {
 	c.AllocForReading(numRow)
 
 	for i := range c.Column {
-		err := rd.UUID(c.Column[i][:])
-		if err != nil {
+		if err := rd.UUID(c.Column[i][:]); err != nil {
 			return err
 		}
 	}
@@ -554,6 +553,44 @@ func (c BFloat16HistColumn) WriteTo(wr *chproto.Writer) error {
 			wr.UInt16(uint16(k))
 			wr.UInt64(v)
 		}
+	}
+	return nil
+}
+
+//------------------------------------------------------------------------------
+
+type MapStringStringColumn struct {
+	ColumnOf[map[string]string]
+}
+
+var _ Columnar = (*MapStringStringColumn)(nil)
+
+func NewMapStringStringColumn() Columnar {
+	return new(MapStringStringColumn)
+}
+
+func (c MapStringStringColumn) Type() reflect.Type {
+	return mapStringStringType
+}
+
+func (c *MapStringStringColumn) ReadFrom(rd *chproto.Reader, numRow int) error {
+	c.AllocForReading(numRow)
+
+	for i := range c.Column {
+		// TODO: implement
+		if err := rd.UUID(c.Column[i][:]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c MapStringStringColumn) WriteTo(wr *chproto.Writer) error {
+	for i := range c.Column {
+		v := c.Column[i]
+		// TODO: implement
+		wr.Write(v)
 	}
 	return nil
 }
