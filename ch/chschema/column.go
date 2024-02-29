@@ -2,6 +2,7 @@ package chschema
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -111,13 +112,73 @@ func (c ColumnOf[T]) Slice(s, e int) any {
 	return c.Column[s:e]
 }
 
+func (c *ColumnOf[T]) appendSliceColumn(v reflect.Value) {
+	colElemType := reflect.TypeOf(c.Column).Elem().Elem()
+	col := reflect.MakeSlice(reflect.SliceOf(colElemType), 0, v.Len())
+	for i := 0; i < v.Len(); i++ {
+		col = reflect.Append(col, v.Index(i).Convert(colElemType))
+	}
+	c.Column = append(c.Column, col.Interface().(T))
+}
+
 func (c *ColumnOf[T]) AppendValue(v reflect.Value) {
+	if reflect.TypeOf(c.Column).Elem().Kind() == reflect.Slice && v.Kind() == reflect.Slice {
+		c.appendSliceColumn(v)
+		return
+	}
 	c.Column = append(c.Column, v.Interface().(T))
 }
 
+func (c *ColumnOf[T]) convertSliceColumn(slice T, destSlice reflect.Value) {
+	sliceValue := reflect.ValueOf(slice)
+	elemType := destSlice.Type().Elem()
+
+	ret := reflect.MakeSlice(reflect.SliceOf(elemType), 0, sliceValue.Len())
+	for i := 0; i < sliceValue.Len(); i++ {
+		ret = reflect.Append(ret, sliceValue.Index(i).Convert(elemType))
+	}
+
+	destSlice.Set(ret)
+}
+
 func (c *ColumnOf[T]) ConvertAssign(idx int, dest reflect.Value) error {
+	if reflect.TypeOf(c.Column).Elem().Kind() == reflect.Slice && dest.Kind() == reflect.Slice {
+		c.convertSliceColumn(c.Column[idx], dest)
+		return nil
+	}
 	dest.Set(reflect.ValueOf(c.Column[idx]))
 	return nil
+}
+
+//------------------------------------------------------------------------------
+
+func convertAssignDriverValue(col any, v reflect.Value) bool {
+	var ret reflect.Value
+
+	if _, ok := v.Interface().(sql.Scanner); !ok {
+		if !v.CanAddr() {
+			return false
+		}
+		if _, ok := v.Addr().Interface().(sql.Scanner); !ok {
+			return false
+		}
+
+		ret = reflect.New(v.Type())
+		if err := ret.Interface().(sql.Scanner).Scan(col); err != nil {
+			return false
+		}
+
+		v.Set(ret.Elem())
+		return true
+	}
+
+	ret = reflect.New(v.Type().Elem())
+	if err := ret.Interface().(sql.Scanner).Scan(col); err != nil {
+		return false
+	}
+
+	v.Set(ret)
+	return true
 }
 
 //------------------------------------------------------------------------------
@@ -135,7 +196,11 @@ func (c NumericColumnOf[T]) ConvertAssign(idx int, v reflect.Value) error {
 	case reflect.Float32, reflect.Float64:
 		v.SetFloat(float64(c.Column[idx]))
 	default:
-		v.Set(reflect.ValueOf(c.Column[idx]))
+		if !convertAssignDriverValue(c.Column[idx], v) {
+			v.Set(reflect.ValueOf(c.Column[idx]))
+			return nil
+		}
+		return nil
 	}
 	return nil
 }
@@ -156,7 +221,7 @@ func (c StringColumn) ConvertAssign(idx int, v reflect.Value) error {
 		v.SetString(c.Column[idx])
 		return nil
 	case reflect.Slice:
-		if v.Type() == bytesType {
+		if v.Type() == bytesType || v.Type() == reflect.TypeOf((*json.RawMessage)(nil)).Elem() {
 			v.SetBytes(internal.Bytes(c.Column[idx]))
 			return nil
 		}
@@ -165,7 +230,31 @@ func (c StringColumn) ConvertAssign(idx int, v reflect.Value) error {
 		dec.UseNumber()
 		return dec.Decode(v.Addr().Interface())
 	default:
-		v.Set(reflect.ValueOf(c.Column[idx]))
+		if !convertAssignDriverValue(c.Column[idx], v) {
+			// v.Set(reflect.ValueOf(c.Column[idx]))
+			return nil
+		}
+		return nil
+	}
+	return fmt.Errorf("ch: can't scan %s into %s", "string", v.Type())
+}
+
+//------------------------------------------------------------------------------
+
+func (c *UInt256Column) ConvertAssign(idx int, v reflect.Value) error {
+	switch v.Kind() {
+	case reflect.String:
+		v.SetString(c.Column[idx].String())
+		return nil
+	case reflect.Slice:
+		if v.Type() == bytesType {
+			v.SetBytes(internal.Bytes(string(c.Column[idx].Bytes())))
+			return nil
+		}
+	default:
+		if !convertAssignDriverValue(c.Column[idx].String(), v) {
+			return fmt.Errorf("ch: convertAssign UInt256 %x", c.Column[idx])
+		}
 		return nil
 	}
 	return fmt.Errorf("ch: can't scan %s into %s", "string", v.Type())

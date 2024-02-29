@@ -1,11 +1,41 @@
 package chschema
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"fmt"
+	"math/big"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/uptrace/go-clickhouse/ch/chproto"
 )
+
+func getDriverValue(v reflect.Value) driver.Value {
+	if v.Kind() == reflect.Pointer && v.IsNil() {
+		return nil
+	}
+
+	dv, ok := v.Interface().(driver.Valuer)
+	if !ok {
+		if !v.CanAddr() {
+			return nil
+		}
+		if dv, ok = v.Addr().Interface().(driver.Valuer); !ok {
+			return nil
+		}
+	}
+
+	value, err := dv.Value()
+	if err != nil {
+		return nil
+	}
+
+	return value
+}
+
+//------------------------------------------------------------------------------
 
 type Int8Column struct {
 	NumericColumnOf[int8]
@@ -1396,7 +1426,116 @@ func (c *UInt64Column) Type() reflect.Type {
 }
 
 func (c *UInt64Column) AppendValue(v reflect.Value) {
-	c.Column = append(c.Column, uint64(v.Uint()))
+	switch v.Kind() {
+	case reflect.Uint, reflect.Uintptr, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		c.Column = append(c.Column, v.Uint())
+	case reflect.String:
+		i, err := strconv.ParseInt(v.String(), 10, 64)
+		if err != nil {
+			return
+		}
+		c.Column = append(c.Column, uint64(i))
+	case reflect.Pointer:
+		if v.IsNil() {
+			c.Column = append(c.Column, 0)
+			return
+		}
+		c.AppendValue(v.Elem())
+	default:
+		value := getDriverValue(v)
+		if value != nil {
+			c.AppendValue(reflect.ValueOf(value))
+			return
+		}
+		c.Column = append(c.Column, v.Uint())
+	}
+}
+
+//------------------------------------------------------------------------------
+
+type UInt256Column struct {
+	ColumnOf[*big.Int]
+}
+
+var _ Columnar = (*UInt256Column)(nil)
+
+func NewUInt256Column() Columnar {
+	return new(UInt256Column)
+}
+
+var _UInt256Type = reflect.TypeOf((*big.Int)(nil)).Elem()
+
+const u256sz = 256 / 8
+
+func (c *UInt256Column) Type() reflect.Type {
+	return _UInt256Type
+}
+
+func (c *UInt256Column) AppendValue(v reflect.Value) {
+	switch v.Kind() {
+	case reflect.Uint, reflect.Uintptr, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		c.Column = append(c.Column, new(big.Int).SetUint64(v.Uint()))
+	case reflect.String:
+		i, ok := new(big.Int).SetString(v.String(), 10)
+		if !ok {
+			return
+		}
+		c.Column = append(c.Column, i)
+	case reflect.Slice:
+		ba, ok := v.Interface().([]byte)
+		if !ok {
+			return
+		}
+		c.Column = append(c.Column, new(big.Int).SetBytes(ba))
+	case reflect.Pointer:
+		if v.IsNil() {
+			c.Column = append(c.Column, new(big.Int))
+			return
+		}
+		c.AppendValue(v.Elem())
+	default:
+		value := getDriverValue(v)
+		if value != nil {
+			c.AppendValue(reflect.ValueOf(value))
+			return
+		}
+	}
+}
+
+func (c *UInt256Column) ReadFrom(rd *chproto.Reader, numRow int) error {
+	c.AllocForReading(numRow)
+
+	for it := range c.Column {
+		b := make([]byte, u256sz, u256sz)
+		n, err := rd.Read(b)
+		if err != nil {
+			return err
+		}
+		if n != u256sz {
+			return fmt.Errorf("expected read bytes %d, got %d", u256sz, n)
+		}
+		for i := 0; i < len(b)/2; i++ {
+			b[i], b[len(b)-i-1] = b[len(b)-i-1], b[i]
+		}
+		c.Column[it] = new(big.Int).SetBytes(b)
+	}
+
+	return nil
+}
+
+func (c *UInt256Column) WriteTo(wr *chproto.Writer) error {
+	for _, n := range c.Column {
+		if n.BitLen() > 256 {
+			return fmt.Errorf("%s has bigger len %d than 256", n, n.BitLen())
+		}
+		b := make([]byte, u256sz, u256sz)
+		b = n.FillBytes(b)
+		for i := 0; i < len(b)/2; i++ {
+			b[i], b[len(b)-i-1] = b[len(b)-i-1], b[i]
+		}
+		wr.Write(b)
+	}
+	return nil
 }
 
 //------------------------------------------------------------------------------
@@ -2201,7 +2340,37 @@ func (c *StringColumn) Type() reflect.Type {
 }
 
 func (c *StringColumn) AppendValue(v reflect.Value) {
-	c.Column = append(c.Column, string(v.String()))
+	if v.Kind() == reflect.Pointer && v.IsNil() {
+		c.Column = append(c.Column, "")
+		return
+	}
+
+	switch vi := v.Interface().(type) {
+	case string:
+		c.Column = append(c.Column, vi)
+	case []byte:
+		c.Column = append(c.Column, string(vi))
+	case json.RawMessage:
+		c.Column = append(c.Column, string(vi))
+	default:
+		value := getDriverValue(v)
+		if value != nil {
+			c.AppendValue(reflect.ValueOf(value))
+			return
+		}
+		if v.Kind() == reflect.String {
+			c.Column = append(c.Column, v.String())
+			return
+		}
+		j, err := json.Marshal(vi)
+		if err != nil {
+			panic(err)
+		}
+		if string(j) == "null" {
+			j = nil
+		}
+		c.Column = append(c.Column, string(j))
+	}
 }
 
 func (c *StringColumn) ReadFrom(rd *chproto.Reader, numRow int) error {

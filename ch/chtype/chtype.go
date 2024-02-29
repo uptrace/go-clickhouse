@@ -13,6 +13,7 @@ const (
 	UInt16     = "UInt16"
 	UInt32     = "UInt32"
 	UInt64     = "UInt64"
+	UInt256    = "UInt256"
 	Float32    = "Float32"
 	Float64    = "Float64"
 	DateTime   = "DateTime"
