@@ -288,7 +288,7 @@ func (t *Table) AppendNamedArg(
 }
 
 func quoteTableName(s string) Safe {
-	return Safe(appendFQN(nil, internal.Bytes(s)))
+	return Safe(appendIdent(nil, internal.Bytes(s)))
 }
 
 func quoteColumnName(s string) Safe {

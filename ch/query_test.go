@@ -115,6 +115,25 @@ func TestQuery(t *testing.T) {
 				Group("id").
 				OrderExpr("id")
 		},
+		func(db *ch.DB) chschema.QueryAppender {
+			q1 := db.NewSelect().Model(new(Model)).Where("1")
+			q2 := db.NewSelect().Model(new(Model))
+			return q1.Union(q2)
+		},
+		func(db *ch.DB) chschema.QueryAppender {
+			q1 := db.NewSelect().Model(new(Model)).Where("1")
+			q2 := db.NewSelect().Model(new(Model))
+			return q1.UnionAll(q2)
+		},
+		func(db *ch.DB) chschema.QueryAppender {
+			return db.NewCreateTable().
+				Table("my-table_dist").
+				As("my-table").
+				Engine("Distributed(?, currentDatabase(), ?, rand())",
+					ch.Name("my-cluster"), ch.Name("my-table")).
+				OnCluster("my-cluster").
+				IfNotExists()
+		},
 	}
 
 	db := chDB()

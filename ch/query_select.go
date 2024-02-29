@@ -13,29 +13,51 @@ import (
 )
 
 type SelectQuery struct {
-	whereBaseQuery
+	baseQuery
 
 	sample     chschema.QueryWithArgs
 	distinctOn []chschema.QueryWithArgs
 	joins      []joinQuery
+	prewhere   whereQuery
+	where      whereQuery
 	group      []chschema.QueryWithArgs
 	having     []chschema.QueryWithArgs
 	order      []chschema.QueryWithArgs
 	limit      int
 	offset     int
 	final      bool
+	union      []union
+}
+
+type union struct {
+	expr  string
+	query *SelectQuery
 }
 
 var _ Query = (*SelectQuery)(nil)
 
 func NewSelectQuery(db *DB) *SelectQuery {
 	return &SelectQuery{
-		whereBaseQuery: whereBaseQuery{
-			baseQuery: baseQuery{
-				db: db,
-			},
+		baseQuery: baseQuery{
+			db: db,
 		},
 	}
+}
+
+func (q *SelectQuery) Clone() *SelectQuery {
+	clone := *q
+
+	clone.baseQuery = clone.baseQuery.clone()
+	clone.prewhere = clone.prewhere.clone()
+	clone.where = clone.where.clone()
+
+	clone.distinctOn = lazyClone(clone.distinctOn)
+	clone.joins = lazyClone(clone.joins)
+	clone.group = lazyClone(clone.group)
+	clone.having = lazyClone(clone.having)
+	clone.order = lazyClone(clone.order)
+
+	return &clone
 }
 
 func (q *SelectQuery) Operation() string {
@@ -52,7 +74,7 @@ func (q *SelectQuery) Err(err error) *SelectQuery {
 	return q
 }
 
-func (q *SelectQuery) WithQuery(fn func(*SelectQuery) *SelectQuery) *SelectQuery {
+func (q *SelectQuery) Apply(fn func(*SelectQuery) *SelectQuery) *SelectQuery {
 	return fn(q)
 }
 
@@ -95,13 +117,18 @@ func (q *SelectQuery) DistinctOn(query string, args ...any) *SelectQuery {
 
 func (q *SelectQuery) Table(tables ...string) *SelectQuery {
 	for _, table := range tables {
-		q.addTable(chschema.UnsafeIdent(table))
+		q.addTable(chschema.UnsafeName(table))
 	}
 	return q
 }
 
 func (q *SelectQuery) TableExpr(query string, args ...any) *SelectQuery {
 	q.addTable(chschema.SafeQuery(query, args))
+	return q
+}
+
+func (q *SelectQuery) ModelTable(table string) *SelectQuery {
+	q.modelTableName = chschema.UnsafeName(table)
 	return q
 }
 
@@ -119,7 +146,7 @@ func (q *SelectQuery) Sample(query string, args ...any) *SelectQuery {
 
 func (q *SelectQuery) Column(columns ...string) *SelectQuery {
 	for _, column := range columns {
-		q.addColumn(chschema.UnsafeIdent(column))
+		q.addColumn(chschema.UnsafeName(column))
 	}
 	return q
 }
@@ -131,6 +158,24 @@ func (q *SelectQuery) ColumnExpr(query string, args ...any) *SelectQuery {
 
 func (q *SelectQuery) ExcludeColumn(columns ...string) *SelectQuery {
 	q.excludeColumn(columns)
+	return q
+}
+
+//------------------------------------------------------------------------------
+
+func (q *SelectQuery) Union(other *SelectQuery) *SelectQuery {
+	return q.addUnion(" UNION ", other)
+}
+
+func (q *SelectQuery) UnionAll(other *SelectQuery) *SelectQuery {
+	return q.addUnion(" UNION ALL ", other)
+}
+
+func (q *SelectQuery) addUnion(expr string, other *SelectQuery) *SelectQuery {
+	q.union = append(q.union, union{
+		expr:  expr,
+		query: other,
+	})
 	return q
 }
 
@@ -163,26 +208,52 @@ func (q *SelectQuery) joinOn(cond string, args []any, sep string) *SelectQuery {
 
 //------------------------------------------------------------------------------
 
+func (q *SelectQuery) Prewhere(query string, args ...any) *SelectQuery {
+	q.prewhere.addFilter(chschema.SafeQueryWithSep(query, args, " AND "))
+	return q
+}
+
+func (q *SelectQuery) PrewhereOr(query string, args ...any) *SelectQuery {
+	q.prewhere.addFilter(chschema.SafeQueryWithSep(query, args, " OR "))
+	return q
+}
+
+func (q *SelectQuery) PrewhereGroup(sep string, fn func(*SelectQuery) *SelectQuery) *SelectQuery {
+	saved := q.prewhere.filters
+	q.prewhere.filters = nil
+
+	q = fn(q)
+
+	filters := q.prewhere.filters
+	q.prewhere.filters = saved
+
+	q.prewhere.addGroup(sep, filters)
+
+	return q
+}
+
+//------------------------------------------------------------------------------
+
 func (q *SelectQuery) Where(query string, args ...any) *SelectQuery {
-	q.addWhere(chschema.SafeQueryWithSep(query, args, " AND "))
+	q.where.addFilter(chschema.SafeQueryWithSep(query, args, " AND "))
 	return q
 }
 
 func (q *SelectQuery) WhereOr(query string, args ...any) *SelectQuery {
-	q.addWhere(chschema.SafeQueryWithSep(query, args, " OR "))
+	q.where.addFilter(chschema.SafeQueryWithSep(query, args, " OR "))
 	return q
 }
 
 func (q *SelectQuery) WhereGroup(sep string, fn func(*SelectQuery) *SelectQuery) *SelectQuery {
-	saved := q.where
-	q.where = nil
+	saved := q.where.filters
+	q.where.filters = nil
 
 	q = fn(q)
 
-	where := q.where
-	q.where = saved
+	filters := q.where.filters
+	q.where.filters = saved
 
-	q.addWhereGroup(sep, where)
+	q.where.addGroup(sep, filters)
 
 	return q
 }
@@ -191,7 +262,7 @@ func (q *SelectQuery) WhereGroup(sep string, fn func(*SelectQuery) *SelectQuery)
 
 func (q *SelectQuery) Group(columns ...string) *SelectQuery {
 	for _, column := range columns {
-		q.group = append(q.group, chschema.UnsafeIdent(column))
+		q.group = append(q.group, chschema.UnsafeName(column))
 	}
 	return q
 }
@@ -214,7 +285,7 @@ func (q *SelectQuery) Order(orders ...string) *SelectQuery {
 
 		index := strings.IndexByte(order, ' ')
 		if index == -1 {
-			q.order = append(q.order, chschema.UnsafeIdent(order))
+			q.order = append(q.order, chschema.UnsafeName(order))
 			continue
 		}
 
@@ -225,11 +296,11 @@ func (q *SelectQuery) Order(orders ...string) *SelectQuery {
 		case "ASC", "DESC", "ASC NULLS FIRST", "DESC NULLS FIRST",
 			"ASC NULLS LAST", "DESC NULLS LAST":
 			q.order = append(q.order, chschema.SafeQuery("? ?", []any{
-				Ident(field),
+				Name(field),
 				Safe(sort),
 			}))
 		default:
-			q.order = append(q.order, chschema.UnsafeIdent(order))
+			q.order = append(q.order, chschema.UnsafeName(order))
 		}
 	}
 	return q
@@ -285,6 +356,10 @@ func (q *SelectQuery) appendQuery(
 	cteCount := count && (len(q.group) > 0 || len(q.distinctOn) > 0)
 	if cteCount {
 		b = append(b, `WITH "_count_wrapper" AS (`...)
+	}
+
+	if len(q.union) > 0 {
+		b = append(b, '(')
 	}
 
 	if len(q.with) > 0 {
@@ -344,9 +419,19 @@ func (q *SelectQuery) appendQuery(
 		}
 	}
 
-	b, err = q.appendWhere(fmter, b)
-	if err != nil {
-		return nil, err
+	if len(q.prewhere.filters) > 0 {
+		b = append(b, " PREWHERE "...)
+		b, err = appendWhere(fmter, b, q.prewhere.filters)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if len(q.where.filters) > 0 {
+		b = append(b, " WHERE "...)
+		b, err = appendWhere(fmter, b, q.where.filters)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(q.group) > 0 {
@@ -399,7 +484,23 @@ func (q *SelectQuery) appendQuery(
 			b = append(b, " OFFSET "...)
 			b = strconv.AppendInt(b, int64(q.offset), 10)
 		}
-	} else if cteCount {
+	}
+
+	if len(q.union) > 0 {
+		b = append(b, ')')
+
+		for _, u := range q.union {
+			b = append(b, u.expr...)
+			b = append(b, '(')
+			b, err = u.query.AppendQuery(fmter, b)
+			if err != nil {
+				return nil, err
+			}
+			b = append(b, ')')
+		}
+	}
+
+	if cteCount {
 		b = append(b, `) SELECT `...)
 		b = append(b, "count()"...)
 		b = append(b, ` FROM "_count_wrapper"`...)
@@ -421,7 +522,7 @@ func (q *SelectQuery) appendWith(fmter chschema.Formatter, b []byte) (_ []byte, 
 		}
 
 		if with.cte {
-			b = chschema.AppendIdent(b, with.name)
+			b = chschema.AppendName(b, with.name)
 			b = append(b, " AS "...)
 			b = append(b, "("...)
 		}
@@ -435,7 +536,7 @@ func (q *SelectQuery) appendWith(fmter chschema.Formatter, b []byte) (_ []byte, 
 			b = append(b, ")"...)
 		} else {
 			b = append(b, " AS "...)
-			b = chschema.AppendIdent(b, with.name)
+			b = chschema.AppendName(b, with.name)
 		}
 	}
 	b = append(b, ' ')

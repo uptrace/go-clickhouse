@@ -32,6 +32,15 @@ type baseQuery struct {
 	flags internal.Flag
 }
 
+func (q *baseQuery) clone() baseQuery {
+	clone := *q
+	clone.with = lazyClone(clone.with)
+	clone.tables = lazyClone(clone.tables)
+	clone.columns = lazyClone(clone.columns)
+	clone.settings = lazyClone(clone.settings)
+	return clone
+}
+
 func (q *baseQuery) DB() *DB {
 	return q.db
 }
@@ -289,7 +298,7 @@ func (q *baseQuery) addColumn(column chschema.QueryWithArgs) {
 func (q *baseQuery) excludeColumn(columns []string) {
 	if q.columns == nil {
 		for _, f := range q.table.Fields {
-			q.columns = append(q.columns, chschema.UnsafeIdent(f.CHName))
+			q.columns = append(q.columns, chschema.UnsafeName(f.CHName))
 		}
 	}
 
@@ -392,51 +401,32 @@ func appendTableColumns(b []byte, table chschema.Safe, fields []*chschema.Field)
 
 //------------------------------------------------------------------------------
 
-type whereBaseQuery struct {
-	baseQuery
-
-	where []chschema.QueryWithSep
+type whereQuery struct {
+	filters []chschema.QueryWithSep
 }
 
-func (q *whereBaseQuery) addWhere(where chschema.QueryWithSep) {
-	q.where = append(q.where, where)
+func (q *whereQuery) clone() whereQuery {
+	clone := *q
+	clone.filters = lazyClone(clone.filters)
+	return clone
 }
 
-func (q *whereBaseQuery) addWhereGroup(sep string, where []chschema.QueryWithSep) {
-	if len(where) == 0 {
+func (q *whereQuery) addFilter(filter chschema.QueryWithSep) {
+	q.filters = append(q.filters, filter)
+}
+
+func (q *whereQuery) addGroup(sep string, filters []chschema.QueryWithSep) {
+	if len(filters) == 0 {
 		return
 	}
 
-	q.addWhere(chschema.SafeQueryWithSep("", nil, sep))
-	q.addWhere(chschema.SafeQueryWithSep("", nil, "("))
+	q.addFilter(chschema.SafeQueryWithSep("", nil, sep))
+	q.addFilter(chschema.SafeQueryWithSep("", nil, "("))
 
-	where[0].Sep = ""
-	q.where = append(q.where, where...)
+	filters[0].Sep = ""
+	q.filters = append(q.filters, filters...)
 
-	q.addWhere(chschema.SafeQueryWithSep("", nil, ")"))
-}
-
-func (q *whereBaseQuery) mustAppendWhere(fmter chschema.Formatter, b []byte) ([]byte, error) {
-	if len(q.where) == 0 {
-		err := errors.New("ch: Update and Delete queries require at least one Where")
-		return nil, err
-	}
-	return q.appendWhere(fmter, b)
-}
-
-func (q *whereBaseQuery) appendWhere(fmter chschema.Formatter, b []byte) (_ []byte, err error) {
-	if len(q.where) == 0 {
-		return b, nil
-	}
-
-	b = append(b, " WHERE "...)
-
-	b, err = appendWhere(fmter, b, q.where)
-	if err != nil {
-		return nil, err
-	}
-
-	return b, nil
+	q.addFilter(chschema.SafeQueryWithSep("", nil, ")"))
 }
 
 func appendWhere(
@@ -459,4 +449,12 @@ func appendWhere(
 		b = append(b, ')')
 	}
 	return b, nil
+}
+
+func lazyClone[S ~[]E, E any](s S) S {
+	// Preserve nil in case it matters.
+	if s == nil {
+		return nil
+	}
+	return s[:len(s):len(s)]
 }

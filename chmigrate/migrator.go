@@ -17,7 +17,7 @@ type MigratorOption func(m *Migrator)
 
 func WithTableName(table string) MigratorOption {
 	return func(m *Migrator) {
-		m.table = table
+		m.migrationsTable = table
 	}
 }
 
@@ -33,8 +33,20 @@ func WithReplicated(on bool) MigratorOption {
 	}
 }
 
+func WithDistributed(on bool) MigratorOption {
+	return func(m *Migrator) {
+		m.distributed = on
+	}
+}
+
+func WithOnCluster(cluster string) MigratorOption {
+	return func(m *Migrator) {
+		m.cluster = cluster
+	}
+}
+
 // WithMarkAppliedOnSuccess sets the migrator to only mark migrations as applied/unapplied
-// when their up/down is successful
+// when their up/down is successful.
 func WithMarkAppliedOnSuccess(enabled bool) MigratorOption {
 	return func(m *Migrator) {
 		m.markAppliedOnSuccess = enabled
@@ -47,9 +59,11 @@ type Migrator struct {
 
 	ms MigrationSlice
 
-	table                string
+	migrationsTable      string
 	locksTable           string
 	replicated           bool
+	distributed          bool
+	cluster              string
 	markAppliedOnSuccess bool
 }
 
@@ -60,8 +74,8 @@ func NewMigrator(db *ch.DB, migrations *Migrations, opts ...MigratorOption) *Mig
 
 		ms: migrations.ms,
 
-		table:      "ch_migrations",
-		locksTable: "ch_migration_locks",
+		migrationsTable: "ch_migrations",
+		locksTable:      "ch_migration_locks",
 	}
 	for _, opt := range opts {
 		opt(m)
@@ -100,49 +114,76 @@ func (m *Migrator) migrationsWithStatus(ctx context.Context) (MigrationSlice, in
 }
 
 func (m *Migrator) Init(ctx context.Context) error {
+	if m.distributed {
+		if m.cluster == "" {
+			return errors.New("chmigrate: distributed requires a cluster name")
+		}
+	}
+
 	if _, err := m.db.NewCreateTable().
 		Model((*Migration)(nil)).
-		WithQuery(func(q *ch.CreateTableQuery) *ch.CreateTableQuery {
+		Apply(func(q *ch.CreateTableQuery) *ch.CreateTableQuery {
 			if m.replicated {
 				return q.Engine("ReplicatedCollapsingMergeTree(sign)")
 			}
 			return q.Engine("CollapsingMergeTree(sign)")
 		}).
-		ModelTableExpr(m.table).
+		ModelTable(m.migrationsTable).
+		OnCluster(m.cluster).
 		IfNotExists().
 		Exec(ctx); err != nil {
 		return err
 	}
+
 	if _, err := m.db.NewCreateTable().
 		Model((*migrationLock)(nil)).
-		WithQuery(func(q *ch.CreateTableQuery) *ch.CreateTableQuery {
+		Apply(func(q *ch.CreateTableQuery) *ch.CreateTableQuery {
 			if m.replicated {
 				return q.Engine("ReplicatedMergeTree")
 			}
 			return q.Engine("MergeTree")
 		}).
-		ModelTableExpr(m.locksTable).
+		ModelTable(m.locksTable).
+		OnCluster(m.cluster).
 		IfNotExists().
 		Exec(ctx); err != nil {
 		return err
 	}
+
+	if m.distributed {
+		if _, err := m.db.NewCreateTable().
+			Table(m.distTable(m.migrationsTable)).
+			As(m.migrationsTable).
+			Engine("Distributed(?, currentDatabase(), ?, rand())",
+				ch.Ident(m.cluster), ch.Ident(m.migrationsTable)).
+			OnCluster(m.cluster).
+			IfNotExists().
+			Exec(ctx); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 func (m *Migrator) Reset(ctx context.Context) error {
-	if _, err := m.db.NewDropTable().
-		Model((*Migration)(nil)).
-		ModelTableExpr(m.table).
-		IfExists().
-		Exec(ctx); err != nil {
-		return err
+	tables := []string{
+		m.migrationsTable,
+		m.locksTable,
 	}
-	if _, err := m.db.NewDropTable().
-		Model((*migrationLock)(nil)).
-		ModelTableExpr(m.locksTable).
-		IfExists().
-		Exec(ctx); err != nil {
-		return err
+	if m.distributed {
+		tables = append(tables,
+			m.distTable(m.migrationsTable),
+		)
+	}
+	for _, tableName := range tables {
+		if _, err := m.db.NewDropTable().
+			Table(tableName).
+			OnCluster(m.cluster).
+			IfExists().
+			Exec(ctx); err != nil {
+			return err
+		}
 	}
 	return m.Init(ctx)
 }
@@ -352,7 +393,7 @@ func (m *Migrator) MarkApplied(ctx context.Context, migration *Migration) error 
 	migration.MigratedAt = time.Now()
 	_, err := m.db.NewInsert().
 		Model(migration).
-		ModelTableExpr(m.table).
+		ModelTable(m.distTable(m.migrationsTable)).
 		Exec(ctx)
 	return err
 }
@@ -362,13 +403,13 @@ func (m *Migrator) MarkUnapplied(ctx context.Context, migration *Migration) erro
 	migration.Sign = -1
 	_, err := m.db.NewInsert().
 		Model(migration).
-		ModelTableExpr(m.table).
+		ModelTable(m.distTable(m.migrationsTable)).
 		Exec(ctx)
 	return err
 }
 
 func (m *Migrator) TruncateTable(ctx context.Context) error {
-	_, err := m.db.Exec("TRUNCATE TABLE ?", ch.Ident(m.table))
+	_, err := m.db.Exec("TRUNCATE TABLE ?", ch.Ident(m.distTable(m.migrationsTable)))
 	return err
 }
 
@@ -396,7 +437,7 @@ func (m *Migrator) AppliedMigrations(ctx context.Context) (MigrationSlice, error
 	if err := m.db.NewSelect().
 		ColumnExpr("*").
 		Model(&ms).
-		ModelTableExpr(m.table).
+		ModelTable(m.distTable(m.migrationsTable)).
 		Final().
 		Scan(ctx); err != nil {
 		return nil, err
@@ -404,15 +445,18 @@ func (m *Migrator) AppliedMigrations(ctx context.Context) (MigrationSlice, error
 	return ms, nil
 }
 
-func (m *Migrator) formattedTableName(db *ch.DB) string {
-	return db.Formatter().FormatQuery(m.table)
-}
-
 func (m *Migrator) validate() error {
 	if len(m.ms) == 0 {
 		return errors.New("chmigrate: there are no any migrations")
 	}
 	return nil
+}
+
+func (m *Migrator) distTable(table string) string {
+	if m.distributed {
+		return table + "_dist"
+	}
+	return table
 }
 
 //------------------------------------------------------------------------------

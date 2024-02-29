@@ -11,9 +11,9 @@ import (
 type DropViewQuery struct {
 	baseQuery
 
-	ifExists bool
-	view     chschema.QueryWithArgs
-	cluster  chschema.QueryWithArgs
+	ifExists  bool
+	view      chschema.QueryWithArgs
+	onCluster chschema.QueryWithArgs
 }
 
 var _ Query = (*DropViewQuery)(nil)
@@ -32,7 +32,7 @@ func (q *DropViewQuery) Model(model any) *DropViewQuery {
 	return q
 }
 
-func (q *DropViewQuery) WithQuery(fn func(*DropViewQuery) *DropViewQuery) *DropViewQuery {
+func (q *DropViewQuery) Apply(fn func(*DropViewQuery) *DropViewQuery) *DropViewQuery {
 	return fn(q)
 }
 
@@ -44,7 +44,7 @@ func (q *DropViewQuery) IfExists() *DropViewQuery {
 }
 
 func (q *DropViewQuery) View(view string) *DropViewQuery {
-	q.view = chschema.UnsafeIdent(view)
+	q.view = chschema.UnsafeName(view)
 	return q
 }
 
@@ -54,12 +54,12 @@ func (q *DropViewQuery) ViewExpr(query string, args ...any) *DropViewQuery {
 }
 
 func (q *DropViewQuery) OnCluster(cluster string) *DropViewQuery {
-	q.cluster = chschema.UnsafeIdent(cluster)
+	q.onCluster = chschema.UnsafeName(cluster)
 	return q
 }
 
 func (q *DropViewQuery) OnClusterExpr(query string, args ...any) *DropViewQuery {
-	q.cluster = chschema.SafeQuery(query, args)
+	q.onCluster = chschema.SafeQuery(query, args)
 	return q
 }
 
@@ -84,9 +84,9 @@ func (q *DropViewQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []byt
 		return nil, err
 	}
 
-	if !q.cluster.IsEmpty() {
+	if !q.onCluster.IsEmpty() {
 		b = append(b, " ON CLUSTER "...)
-		b, err = q.cluster.AppendQuery(fmter, b)
+		b, err = q.onCluster.AppendQuery(fmter, b)
 		if err != nil {
 			return nil, err
 		}

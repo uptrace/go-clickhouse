@@ -544,10 +544,6 @@ func readBlockInfo(rd *chproto.Reader) error {
 	return nil
 }
 
-func writeCancel(wr *chproto.Writer) {
-	wr.WriteByte(chproto.ClientCancel)
-}
-
 func readServerTableColumns(rd *chproto.Reader) error {
 	_, err := rd.String()
 	if err != nil {

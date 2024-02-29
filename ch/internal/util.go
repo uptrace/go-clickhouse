@@ -79,24 +79,10 @@ func MakeSliceNextElemFunc(v reflect.Value) func() reflect.Value {
 	}
 }
 
-func RetryBackoff(retry int, minBackoff, maxBackoff time.Duration) time.Duration {
-	if retry < 0 {
-		panic("not reached")
-	}
-	if minBackoff == 0 {
-		return 0
-	}
-
-	d := minBackoff << uint(retry)
-	if d < minBackoff {
+func RetryBackoff(minBackoff, maxBackoff time.Duration) time.Duration {
+	backoff := minBackoff + time.Duration(rand.Int63n(int64(maxBackoff)))
+	if backoff > maxBackoff {
 		return maxBackoff
 	}
-
-	d = minBackoff + time.Duration(rand.Int63n(int64(d)))
-
-	if d > maxBackoff || d < minBackoff {
-		d = maxBackoff
-	}
-
-	return d
+	return backoff
 }

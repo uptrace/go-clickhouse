@@ -9,13 +9,14 @@ import (
 )
 
 type CreateViewQuery struct {
-	whereBaseQuery
+	baseQuery
 
 	materialized bool
 	ifNotExists  bool
 	view         chschema.QueryWithArgs
-	cluster      chschema.QueryWithArgs
+	onCluster    chschema.QueryWithArgs
 	to           chschema.QueryWithArgs
+	where        whereQuery
 	group        []chschema.QueryWithArgs
 	order        chschema.QueryWithArgs
 }
@@ -24,10 +25,8 @@ var _ Query = (*CreateViewQuery)(nil)
 
 func NewCreateViewQuery(db *DB) *CreateViewQuery {
 	return &CreateViewQuery{
-		whereBaseQuery: whereBaseQuery{
-			baseQuery: baseQuery{
-				db: db,
-			},
+		baseQuery: baseQuery{
+			db: db,
 		},
 	}
 }
@@ -37,14 +36,14 @@ func (q *CreateViewQuery) Model(model any) *CreateViewQuery {
 	return q
 }
 
-func (q *CreateViewQuery) WithQuery(fn func(*CreateViewQuery) *CreateViewQuery) *CreateViewQuery {
+func (q *CreateViewQuery) Apply(fn func(*CreateViewQuery) *CreateViewQuery) *CreateViewQuery {
 	return fn(q)
 }
 
 //------------------------------------------------------------------------------
 
 func (q *CreateViewQuery) View(view string) *CreateViewQuery {
-	q.view = chschema.UnsafeIdent(view)
+	q.view = chschema.UnsafeName(view)
 	return q
 }
 
@@ -54,17 +53,17 @@ func (q *CreateViewQuery) ViewExpr(query string, args ...any) *CreateViewQuery {
 }
 
 func (q *CreateViewQuery) OnCluster(cluster string) *CreateViewQuery {
-	q.cluster = chschema.UnsafeIdent(cluster)
+	q.onCluster = chschema.UnsafeName(cluster)
 	return q
 }
 
 func (q *CreateViewQuery) OnClusterExpr(query string, args ...any) *CreateViewQuery {
-	q.cluster = chschema.SafeQuery(query, args)
+	q.onCluster = chschema.SafeQuery(query, args)
 	return q
 }
 
 func (q *CreateViewQuery) To(to string) *CreateViewQuery {
-	q.to = chschema.UnsafeIdent(to)
+	q.to = chschema.UnsafeName(to)
 	return q
 }
 
@@ -75,7 +74,7 @@ func (q *CreateViewQuery) ToExpr(query string, args ...any) *CreateViewQuery {
 
 func (q *CreateViewQuery) Table(tables ...string) *CreateViewQuery {
 	for _, table := range tables {
-		q.addTable(chschema.UnsafeIdent(table))
+		q.addTable(chschema.UnsafeName(table))
 	}
 	return q
 }
@@ -94,7 +93,7 @@ func (q *CreateViewQuery) ModelTableExpr(query string, args ...any) *CreateViewQ
 
 func (q *CreateViewQuery) Column(columns ...string) *CreateViewQuery {
 	for _, column := range columns {
-		q.addColumn(chschema.UnsafeIdent(column))
+		q.addColumn(chschema.UnsafeName(column))
 	}
 	return q
 }
@@ -124,32 +123,34 @@ func (q *CreateViewQuery) IfNotExists() *CreateViewQuery {
 //------------------------------------------------------------------------------
 
 func (q *CreateViewQuery) Where(query string, args ...any) *CreateViewQuery {
-	q.addWhere(chschema.SafeQueryWithSep(query, args, " AND "))
+	q.where.addFilter(chschema.SafeQueryWithSep(query, args, " AND "))
 	return q
 }
 
 func (q *CreateViewQuery) WhereOr(query string, args ...any) *CreateViewQuery {
-	q.addWhere(chschema.SafeQueryWithSep(query, args, " OR "))
+	q.where.addFilter(chschema.SafeQueryWithSep(query, args, " OR "))
 	return q
 }
 
 func (q *CreateViewQuery) WhereGroup(sep string, fn func(*CreateViewQuery) *CreateViewQuery) *CreateViewQuery {
-	saved := q.where
-	q.where = nil
+	saved := q.where.filters
+	q.where.filters = nil
 
 	q = fn(q)
 
-	where := q.where
-	q.where = saved
+	filters := q.where.filters
+	q.where.filters = saved
 
-	q.addWhereGroup(sep, where)
+	q.where.addGroup(sep, filters)
 
 	return q
 }
 
+//------------------------------------------------------------------------------
+
 func (q *CreateViewQuery) Group(columns ...string) *CreateViewQuery {
 	for _, column := range columns {
-		q.group = append(q.group, chschema.UnsafeIdent(column))
+		q.group = append(q.group, chschema.UnsafeName(column))
 	}
 	return q
 }
@@ -196,9 +197,9 @@ func (q *CreateViewQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []b
 		return nil, err
 	}
 
-	if !q.cluster.IsEmpty() {
+	if !q.onCluster.IsEmpty() {
 		b = append(b, " ON CLUSTER "...)
-		b, err = q.cluster.AppendQuery(fmter, b)
+		b, err = q.onCluster.AppendQuery(fmter, b)
 		if err != nil {
 			return nil, err
 		}
@@ -224,9 +225,12 @@ func (q *CreateViewQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []b
 		return nil, err
 	}
 
-	b, err = q.appendWhere(fmter, b)
-	if err != nil {
-		return nil, err
+	if len(q.where.filters) > 0 {
+		b = append(b, " WHERE "...)
+		b, err = appendWhere(fmter, b, q.where.filters)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(q.group) > 0 {

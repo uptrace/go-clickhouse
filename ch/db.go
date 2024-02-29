@@ -130,10 +130,15 @@ func (db *DB) autoCreateDatabase() {
 	conf := db.conf.clone()
 	conf.Database = ""
 
+	query := "CREATE DATABASE IF NOT EXISTS ?"
+	if conf.Cluster != "" {
+		query += " ON CLUSTER ?"
+	}
+
 	tmp := newDB(conf)
 	defer tmp.Close()
 
-	if _, err := tmp.Exec("CREATE DATABASE IF NOT EXISTS ?", Ident(db.conf.Database)); err != nil {
+	if _, err := tmp.Exec(query, Name(db.conf.Database), Name(db.conf.Cluster)); err != nil {
 		internal.Logger.Printf("create database %q failed: %s", db.conf.Database, err)
 	}
 }
@@ -189,50 +194,14 @@ func (db *DB) _withConn(ctx context.Context, fn func(*chpool.Conn) error) error 
 		return err
 	}
 
-	var done chan struct{}
-
-	if ctxDone := ctx.Done(); ctxDone != nil {
-		done = make(chan struct{})
-		go func() {
-			select {
-			case <-done:
-				// fn has finished, skip cancel
-			case <-ctxDone:
-				db.cancelConn(ctx, cn)
-				// Signal end of conn use.
-				done <- struct{}{}
-			}
-		}()
-	}
+	var fnErr error
 
 	defer func() {
-		if done != nil {
-			select {
-			case <-done: // wait for cancel to finish request
-			case done <- struct{}{}: // signal fn finish, skip cancel goroutine
-			}
-		}
-		db.releaseConn(cn, err)
+		db.releaseConn(cn, fnErr)
 	}()
 
-	// err is used in releaseConn above
-	err = fn(cn)
-
-	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-		db.cancelConn(ctx, cn)
-	}
-
-	return err
-}
-
-func (db *DB) cancelConn(ctx context.Context, cn *chpool.Conn) {
-	if err := cn.WithWriter(ctx, db.conf.WriteTimeout, func(wr *chproto.Writer) {
-		writeCancel(wr)
-	}); err != nil {
-		internal.Logger.Printf("writeCancel failed: %s", err)
-	}
-
-	_ = cn.Close()
+	fnErr = fn(cn)
+	return fnErr
 }
 
 func (db *DB) Ping(ctx context.Context) error {
@@ -267,9 +236,8 @@ func (db *DB) exec(ctx context.Context, query string) (*result, error) {
 	var lastErr error
 	for attempt := 0; attempt <= db.conf.MaxRetries; attempt++ {
 		if attempt > 0 {
-			lastErr = internal.Sleep(ctx, db.retryBackoff(attempt-1))
-			if lastErr != nil {
-				break
+			if err := internal.Sleep(ctx, db.retryBackoff()); err != nil {
+				return nil, err
 			}
 		}
 
@@ -333,9 +301,8 @@ func (db *DB) query(ctx context.Context, query string) (*blockIter, error) {
 
 	for attempt := 0; attempt <= db.conf.MaxRetries; attempt++ {
 		if attempt > 0 {
-			lastErr = internal.Sleep(ctx, db.retryBackoff(attempt-1))
-			if lastErr != nil {
-				break
+			if err := internal.Sleep(ctx, db.retryBackoff()); err != nil {
+				return nil, err
 			}
 		}
 
@@ -358,6 +325,7 @@ func (db *DB) _query(ctx context.Context, query string) (*blockIter, error) {
 		db.writeQuery(ctx, cn, wr, query)
 		db.writeBlock(ctx, wr, nil)
 	}); err != nil {
+		db.releaseConn(cn, err)
 		return nil, err
 	}
 
@@ -374,9 +342,8 @@ func (db *DB) insert(
 
 	for attempt := 0; attempt <= db.conf.MaxRetries; attempt++ {
 		if attempt > 0 {
-			lastErr = internal.Sleep(ctx, db.retryBackoff(attempt-1))
-			if lastErr != nil {
-				break
+			if err := internal.Sleep(ctx, db.retryBackoff()); err != nil {
+				return nil, err
 			}
 		}
 
@@ -484,22 +451,28 @@ func (db *DB) WithFormatter(fmter chschema.Formatter) *DB {
 
 func (db *DB) shouldRetry(err error) bool {
 	switch err {
-	case driver.ErrBadConn:
-		return true
 	case nil, context.Canceled, context.DeadlineExceeded:
 		return false
+	case driver.ErrBadConn:
+		return true
 	}
 
 	if err, ok := err.(*Error); ok {
 		// https://github.com/ClickHouse/ClickHouse/blob/master/src/Common/ErrorCodes.cpp
 		const (
 			timeoutExceeded            = 159
+			tooSlow                    = 160
 			tooManySimultaneousQueries = 202
 			memoryLimitExceeded        = 241
+			cannotDecompress           = 271
 		)
 
 		switch err.Code {
-		case timeoutExceeded, tooManySimultaneousQueries, memoryLimitExceeded:
+		case timeoutExceeded,
+			tooSlow,
+			tooManySimultaneousQueries,
+			memoryLimitExceeded,
+			cannotDecompress:
 			return true
 		}
 	}
@@ -507,9 +480,8 @@ func (db *DB) shouldRetry(err error) bool {
 	return false
 }
 
-func (db *DB) retryBackoff(attempt int) time.Duration {
-	return internal.RetryBackoff(
-		attempt, db.conf.MinRetryBackoff, db.conf.MaxRetryBackoff)
+func (db *DB) retryBackoff() time.Duration {
+	return internal.RetryBackoff(db.conf.MinRetryBackoff, db.conf.MaxRetryBackoff)
 }
 
 func (db *DB) FormatQuery(query string, args ...any) string {

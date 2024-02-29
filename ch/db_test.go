@@ -41,7 +41,7 @@ func TestAutoCreateDatabase(t *testing.T) {
 		db := ch.Connect()
 		defer db.Close()
 
-		_, err := db.Exec("DROP DATABASE IF EXISTS ?", ch.Ident(dbName))
+		_, err := db.Exec("DROP DATABASE IF EXISTS ?", ch.Name(dbName))
 		require.NoError(t, err)
 	}
 
@@ -85,13 +85,6 @@ func TestCHTimeout(t *testing.T) {
 		ctx, "SELECT sleepEachRow(0.01) from numbers(10000) settings max_block_size=10")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "i/o timeout")
-
-	require.Eventually(t, func() bool {
-		var num int
-		err := db.NewRaw("SELECT count() from system.processes").Scan(ctx, &num)
-		require.NoError(t, err)
-		return num == 1
-	}, time.Second, 100*time.Millisecond)
 }
 
 func TestDSNSetting(t *testing.T) {
@@ -167,7 +160,7 @@ func TestPlaceholder(t *testing.T) {
 	params := struct {
 		A     int
 		B     int
-		Alias ch.Ident
+		Alias ch.Name
 	}{
 		A:     1,
 		B:     2,

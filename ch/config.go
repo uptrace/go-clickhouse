@@ -29,6 +29,7 @@ type Config struct {
 	User     string
 	Password string
 	Database string
+	Cluster  string
 
 	DialTimeout   time.Duration
 	TLSConfig     *tls.Config
@@ -75,9 +76,9 @@ func defaultConfig() *Config {
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 10 * time.Second,
 
-		MaxRetries:      2,
-		MinRetryBackoff: 500 * time.Millisecond,
-		MaxRetryBackoff: time.Second,
+		MaxRetries:      3,
+		MinRetryBackoff: time.Millisecond,
+		MaxRetryBackoff: 3 * time.Second,
 	}
 	return conf
 }
@@ -148,6 +149,12 @@ func WithPassword(password string) Option {
 func WithDatabase(database string) Option {
 	return func(db *DB) {
 		db.conf.Database = database
+	}
+}
+
+func WithCluster(cluster string) Option {
+	return func(db *DB) {
+		db.conf.Cluster = cluster
 	}
 }
 
